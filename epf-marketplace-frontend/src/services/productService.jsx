@@ -1,102 +1,154 @@
- 
-import apiClient from "./apiClient"; // Le Dev A configure ce client avec les intercepteurs
- 
+import axiosClient from "./api/axiosClient";
+
 /**
  * ── Catalogue public ──────────────────────────────────────────
  */
- 
+
 // GET /api/products
-export const getProducts = (params = {}) =>
-  apiClient.get("/products", { params });
-// params : { page, per_page, category_id, seller_id, min_price,
-//            max_price, sort, q }
- 
+export const getProducts = async (params = {}) => {
+  const { data } = await axiosClient.get("/products", { params });
+  return data;
+};
+
 // GET /api/products/top-selling
-export const getTopSelling = (limit = 10) =>
-  apiClient.get("/products/top-selling", { params: { limit } });
- 
+export const getTopSelling = async (limit = 10) => {
+  const { data } = await axiosClient.get("/products/top-selling", {
+    params: { limit },
+  });
+  return data;
+};
+
 // GET /api/products/:id
-export const getProduct = (id) =>
-  apiClient.get(`/products/${id}`);
- 
+export const getProduct = async (id) => {
+  const { data } = await axiosClient.get(`/products/${id}`);
+  return data;
+};
+
 // GET /api/products/:id/reviews
-export const getProductReviews = (id, params = {}) =>
-  apiClient.get(`/products/${id}/reviews`, { params });
- 
-// GET /api/products/:id/is-favorite  (auth requise)
-export const isProductFavorite = (id) =>
-  apiClient.get(`/products/${id}/is-favorite`);
- 
+export const getProductReviews = async (id, params = {}) => {
+  const { data } = await axiosClient.get(`/products/${id}/reviews`, { params });
+  return data;
+};
+
+// GET /api/products/:id/is-favorite
+export const isProductFavorite = async (id) => {
+  const { data } = await axiosClient.get(`/products/${id}/is-favorite`);
+  return data;
+};
+
 /**
  * ── Catégories ────────────────────────────────────────────────
  */
- 
-// GET /api/categories
-export const getCategories = () =>
-  apiClient.get("/categories");
- 
-// GET /api/categories/:id
-export const getCategory = (id) =>
-  apiClient.get(`/categories/${id}`);
- 
+
+export const getCategories = async () => {
+  const { data } = await axiosClient.get("/categories");
+  return data;
+};
+
+export const getCategory = async (id) => {
+  const { data } = await axiosClient.get(`/categories/${id}`);
+  return data;
+};
+
 /**
  * ── Recherche ─────────────────────────────────────────────────
  */
- 
-// GET /api/search?q=...&type=...&limit=...
-export const search = (q, type = "all", limit = 12) =>
-  apiClient.get("/search", { params: { q, type, limit } });
- 
+
+export const searchProducts = async (q, type = "all", limit = 12) => {
+  const { data } = await axiosClient.get("/search", {
+    params: { q, type, limit },
+  });
+  return data;
+};
+
 /**
  * ── Profil vendeur public ─────────────────────────────────────
  */
- 
-// GET /api/sellers/:userId
-export const getSellerProfile = (userId) =>
-  apiClient.get(`/sellers/${userId}`);
- 
-// GET /api/sellers/:userId/products
-export const getSellerProducts = (userId, params = {}) =>
-  apiClient.get(`/sellers/${userId}/products`, { params });
- 
-// GET /api/sellers/:userId/reviews
-export const getSellerReviews = (userId, params = {}) =>
-  apiClient.get(`/sellers/${userId}/reviews`, { params });
- 
+
+export const getSellerProfile = async (userId) => {
+  const { data } = await axiosClient.get(`/sellers/${userId}`);
+  return data;
+};
+
+export const getSellerProducts = async (userId, params = {}) => {
+  const { data } = await axiosClient.get(`/sellers/${userId}/products`, {
+    params,
+  });
+  return data;
+};
+
+export const getSellerReviews = async (userId, params = {}) => {
+  const { data } = await axiosClient.get(`/sellers/${userId}/reviews`, {
+    params,
+  });
+  return data;
+};
+
 /**
  * ── Produits vendeur (auth requise) ──────────────────────────
  */
- 
-// GET /api/products/my-products
-export const getMyProducts = (params = {}) =>
-  apiClient.get("/products/my-products", { params });
- 
-// POST /api/products
-export const createProduct = (formData) =>
-  apiClient.post("/products", formData, {
+
+export const getMyProducts = async (params = {}) => {
+  const { data } = await axiosClient.get("/products/my-products", { params });
+  return data;
+};
+
+export const createProduct = async (formData) => {
+  const { data } = await axiosClient.post("/products", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
- 
-// PUT /api/products/:id
-export const updateProduct = (id, formData) =>
-  apiClient.post(`/products/${id}`, formData, {
-    // Laravel accepte PUT via POST + _method en multipart
+  return data;
+};
+
+export const updateProduct = async (id, formData) => {
+  const { data } = await axiosClient.post(`/products/${id}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
     params: { _method: "PUT" },
   });
- 
-// DELETE /api/products/:id
-export const deleteProduct = (id) =>
-  apiClient.delete(`/products/${id}`);
- 
+  return data;
+};
+
+export const deleteProduct = async (id) => {
+  const { data } = await axiosClient.delete(`/products/${id}`);
+  return data;
+};
+
 /**
  * ── Avis (auth requise) ───────────────────────────────────────
  */
- 
-// POST /api/products/:id/reviews
-export const createReview = (productId, data) =>
-  apiClient.post(`/products/${productId}/reviews`, data);
- 
-// DELETE /api/reviews/:id
-export const deleteReview = (reviewId) =>
-  apiClient.delete(`/reviews/${reviewId}`);
+
+export const createReview = async (productId, payload) => {
+  const { data } = await axiosClient.post(`/products/${productId}/reviews`, payload);
+  return data;
+};
+
+export const deleteReview = async (reviewId) => {
+  const { data } = await axiosClient.delete(`/reviews/${reviewId}`);
+  return data;
+};
+
+/**
+ * ── Compatibilité avec l'ancienne convention Dev A ────────────
+ */
+
+export const productService = {
+  getAll: getProducts,
+  getById: getProduct,
+  getTopSelling,
+  getProductReviews,
+  isProductFavorite,
+  getCategories,
+  getCategory,
+  searchProducts,
+  getSellerProfile,
+  getSellerProducts,
+  getSellerReviews,
+  getMyProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  createReview,
+  deleteReview,
+};
+
+export default productService;
