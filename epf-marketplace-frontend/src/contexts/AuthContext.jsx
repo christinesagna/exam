@@ -1,23 +1,20 @@
-import { createContext, useEffect, useMemo, useState } from 'react';
-import { authService } from '../services/authService';
-import { storage } from '../utils/storage';
+import { createContext, useEffect, useMemo, useState } from "react";
+import { authService } from "../services/authService";
+import { storage } from "../utils/storage";
 
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(storage.getUser());
   const [token, setToken] = useState(storage.getToken());
+  const [user, setUser] = useState(storage.getUser());
   const [loading, setLoading] = useState(true);
 
   const isAuthenticated = !!token;
   const role = user?.role || null;
 
-  const login = async (credentials) => {
-    const response = await authService.login(credentials);
-
-    // Ajuste ces clés selon la vraie réponse backend
-    const receivedToken = response?.token || response?.access_token;
-    const receivedUser = response?.user;
+  const normalizeAuthResponse = async (response) => {
+    const receivedToken = response?.token || response?.access_token || null;
+    const receivedUser = response?.user || null;
 
     if (receivedToken) {
       storage.setToken(receivedToken);
@@ -27,39 +24,31 @@ export function AuthProvider({ children }) {
     if (receivedUser) {
       storage.setUser(receivedUser);
       setUser(receivedUser);
-    } else {
-      await fetchMe();
+      return receivedUser;
     }
 
-    return response;
+    return await fetchMe();
   };
 
   const register = async (payload) => {
     const response = await authService.register(payload);
+    await normalizeAuthResponse(response);
+    return response;
+  };
 
-    const receivedToken = response?.token || response?.access_token;
-    const receivedUser = response?.user;
-
-    if (receivedToken) {
-      storage.setToken(receivedToken);
-      setToken(receivedToken);
-    }
-
-    if (receivedUser) {
-      storage.setUser(receivedUser);
-      setUser(receivedUser);
-    }
-
+  const login = async (payload) => {
+    const response = await authService.login(payload);
+    await normalizeAuthResponse(response);
     return response;
   };
 
   const logout = async () => {
     try {
-      if (token) {
+      if (storage.getToken()) {
         await authService.logout();
       }
     } catch (error) {
-      // Même si l'API échoue, on nettoie le front
+      // on nettoie quand même le front
     } finally {
       storage.clearAuth();
       setToken(null);
@@ -68,50 +57,61 @@ export function AuthProvider({ children }) {
   };
 
   const fetchMe = async () => {
-    try {
-      const data = await authService.getMe();
-      const currentUser = data?.user || data?.data || data;
-      storage.setUser(currentUser);
-      setUser(currentUser);
-      return currentUser;
-    } catch (error) {
-      storage.clearAuth();
-      setUser(null);
-      setToken(null);
-      throw error;
+    const data = await authService.getMe();
+    const currentUser = data?.user || data?.data || data;
+
+    storage.setUser(currentUser);
+    setUser(currentUser);
+
+    return currentUser;
+  };
+
+  const updateProfile = async (formData) => {
+    const data = await authService.updateProfile(formData);
+    const updatedUser = data?.user || data?.data || data;
+
+    if (updatedUser) {
+      storage.setUser(updatedUser);
+      setUser(updatedUser);
+    } else {
+      await fetchMe();
     }
+
+    return data;
   };
 
   useEffect(() => {
-    const initAuth = async () => {
+    const init = async () => {
       try {
         if (storage.getToken()) {
           await fetchMe();
         }
       } catch (error) {
-        // géré dans fetchMe
+        storage.clearAuth();
+        setToken(null);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
-    initAuth();
+    init();
   }, []);
 
   const value = useMemo(
     () => ({
-      user,
       token,
+      user,
       role,
       loading,
       isAuthenticated,
-      login,
       register,
+      login,
       logout,
       fetchMe,
-      setUser,
+      updateProfile,
     }),
-    [user, token, role, loading, isAuthenticated]
+    [token, user, role, loading, isAuthenticated]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

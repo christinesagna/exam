@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { useAuth } from '../../hooks/useAuth';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useAuth } from "../../hooks/useAuth";
 
 function RegisterPage() {
   const navigate = useNavigate();
   const { register: registerUser } = useAuth();
-  const [apiError, setApiError] = useState('');
+  const [apiError, setApiError] = useState("");
 
   const {
     register,
@@ -15,13 +15,13 @@ function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm();
 
-  const password = watch('password');
+  const password = watch("password");
 
   const onSubmit = async (values) => {
     try {
-      setApiError('');
+      setApiError("");
       await registerUser(values);
-      navigate('/profile');
+      navigate("/profile", { replace: true });
     } catch (error) {
       setApiError("Erreur lors de l'inscription.");
     }
@@ -34,9 +34,7 @@ function RegisterPage() {
       <form onSubmit={handleSubmit(onSubmit)}>
         <div>
           <label>Nom</label>
-          <input
-            {...register('name', { required: 'Nom requis' })}
-          />
+          <input {...register("name", { required: "Nom requis" })} />
           {errors.name && <p>{errors.name.message}</p>}
         </div>
 
@@ -44,7 +42,7 @@ function RegisterPage() {
           <label>Email</label>
           <input
             type="email"
-            {...register('email', { required: 'Email requis' })}
+            {...register("email", { required: "Email requis" })}
           />
           {errors.email && <p>{errors.email.message}</p>}
         </div>
@@ -53,11 +51,11 @@ function RegisterPage() {
           <label>Mot de passe</label>
           <input
             type="password"
-            {...register('password', {
-              required: 'Mot de passe requis',
+            {...register("password", {
+              required: "Mot de passe requis",
               minLength: {
                 value: 6,
-                message: '6 caractères minimum',
+                message: "6 caractères minimum",
               },
             })}
           />
@@ -65,13 +63,13 @@ function RegisterPage() {
         </div>
 
         <div>
-          <label>Confirmer mot de passe</label>
+          <label>Confirmation mot de passe</label>
           <input
             type="password"
-            {...register('password_confirmation', {
-              required: 'Confirmation requise',
+            {...register("password_confirmation", {
+              required: "Confirmation requise",
               validate: (value) =>
-                value === password || 'Les mots de passe ne correspondent pas',
+                value === password || "Les mots de passe ne correspondent pas",
             })}
           />
           {errors.password_confirmation && (
@@ -81,10 +79,10 @@ function RegisterPage() {
 
         <div>
           <label>Rôle</label>
-          <select {...register('role', { required: 'Rôle requis' })}>
+          <select {...register("role", { required: "Rôle requis" })}>
             <option value="">Choisir</option>
-            <option value="buyer">Acheteur</option>
-            <option value="seller">Vendeur</option>
+            <option value="buyer">Buyer</option>
+            <option value="seller">Seller</option>
           </select>
           {errors.role && <p>{errors.role.message}</p>}
         </div>
@@ -92,7 +90,7 @@ function RegisterPage() {
         {apiError && <p>{apiError}</p>}
 
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Inscription...' : "S'inscrire"}
+          {isSubmitting ? "Inscription..." : "S'inscrire"}
         </button>
       </form>
     </div>

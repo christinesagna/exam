@@ -1,12 +1,15 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { useAuth } from '../../hooks/useAuth';
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useAuth } from "../../hooks/useAuth";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
-  const [apiError, setApiError] = useState('');
+  const [apiError, setApiError] = useState("");
+
+  const redirectTo = location.state?.from?.pathname || "/profile";
 
   const {
     register,
@@ -16,16 +19,16 @@ function LoginPage() {
 
   const onSubmit = async (values) => {
     try {
-      setApiError('');
+      setApiError("");
       await login(values);
-      navigate('/profile');
+      navigate(redirectTo, { replace: true });
     } catch (error) {
       const status = error?.response?.status;
 
       if (status === 403) {
-        setApiError("Vous n’avez pas les droits ou votre compte est suspendu.");
+        setApiError("Compte suspendu ou accès refusé.");
       } else {
-        setApiError("Identifiants invalides.");
+        setApiError("Email ou mot de passe invalide.");
       }
     }
   };
@@ -39,9 +42,7 @@ function LoginPage() {
           <label>Email</label>
           <input
             type="email"
-            {...register('email', {
-              required: 'Email requis',
-            })}
+            {...register("email", { required: "Email requis" })}
           />
           {errors.email && <p>{errors.email.message}</p>}
         </div>
@@ -50,9 +51,7 @@ function LoginPage() {
           <label>Mot de passe</label>
           <input
             type="password"
-            {...register('password', {
-              required: 'Mot de passe requis',
-            })}
+            {...register("password", { required: "Mot de passe requis" })}
           />
           {errors.password && <p>{errors.password.message}</p>}
         </div>
@@ -60,7 +59,7 @@ function LoginPage() {
         {apiError && <p>{apiError}</p>}
 
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Connexion...' : 'Se connecter'}
+          {isSubmitting ? "Connexion..." : "Se connecter"}
         </button>
       </form>
     </div>

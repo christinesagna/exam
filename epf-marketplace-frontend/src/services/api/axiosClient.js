@@ -1,11 +1,10 @@
-import axios from 'axios';
-import { storage } from '../../utils/storage';
+import axios from "axios";
+import { storage } from "../../utils/storage";
 
 const axiosClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   headers: {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
+    Accept: "application/json",
   },
 });
 
@@ -29,7 +28,7 @@ axiosClient.interceptors.response.use(
 
     if (status === 401) {
       storage.clearAuth();
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
 
     return Promise.reject(error);
