@@ -42,7 +42,9 @@ function LoginPage() {
           <label>Email</label>
           <input
             type="email"
-            {...register("email", { required: "Email requis" })}
+            {...register('email', {
+              required: 'Email requis',
+            })}
           />
           {errors.email && <p>{errors.email.message}</p>}
         </div>
