@@ -37,13 +37,14 @@ function LoginPage() {
       <form onSubmit={handleSubmit(onSubmit)}>
         <div>
           <label>Email</label>
-          <input
-            type="email"
-            {...register('email', {
-              required: 'Email requis',
-            })}
-          />
-          {errors.email && <p>{errors.email.message}</p>}
+        <Input
+          label="Email"
+          name="email"
+          type="email"
+          placeholder="Saliou@exemple.com"
+          error={errors.email?.message}
+          {...register("email")}
+        />
         </div>
 
         <div>
