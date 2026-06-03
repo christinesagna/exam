@@ -14,6 +14,9 @@ import ProfilePage from '../pages/auth/ProfilePage';
 import CartPage from '../pages/buyer/CartPage';
 import OrdersPage from '../pages/buyer/OrdersPage';
 
+import DashboardLayout from "../layouts/DashboardLayout";
+import ProductsAdminPage from "../pages/admin/ProductsAdminPage";
+
 import SellerDashboardPage from '../pages/seller/SellerDashboardPage';
 import MyProductsPage from '../pages/seller/MyProductsPage';
 
@@ -54,6 +57,12 @@ function AppRouter() {
           <Route element={<RoleGuard allowedRoles={['admin']} />}>
             <Route path="/admin" element={<AdminDashboardPage />} />
           </Route>
+        </Route>
+
+        <Route element={<DashboardLayout />}>
+          <Route path="/products" element={<ProductsAdminPage />} />
+          <Route path="/orders"   element={<OrdersPage />} />
+          <Route path="/users"    element={<UsersPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
