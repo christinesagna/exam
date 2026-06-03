@@ -1,17 +1,23 @@
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 
 function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <nav className="navbar">
-      <div className="navbar-left">
-        <Link to="/">EPF Marketplace</Link>
-        <Link to="/products">Produits</Link>
+      <div>
+        <Link to="/">Accueil</Link>
+        <Link to="/products">Catalogue</Link>
       </div>
 
-      <div className="navbar-right">
+      <div>
         {!isAuthenticated ? (
           <>
             <Link to="/login">Connexion</Link>
@@ -19,15 +25,17 @@ function Navbar() {
           </>
         ) : (
           <>
-            <Link to="/profile">Profil</Link>
+            <Link to="/profile">Mon profil</Link>
 
-            {user?.role === 'buyer' && <Link to="/cart">Panier</Link>}
-            {user?.role === 'buyer' && <Link to="/orders">Mes commandes</Link>}
+            {user?.role === "buyer" && <Link to="/cart">Panier</Link>}
+            {user?.role === "buyer" && <Link to="/orders">Mes commandes</Link>}
 
-            {user?.role === 'seller' && <Link to="/seller">Espace vendeur</Link>}
-            {user?.role === 'admin' && <Link to="/admin">Admin</Link>}
+            {user?.role === "seller" && <Link to="/seller">Dashboard vendeur</Link>}
+            {user?.role === "seller" && <Link to="/seller/products">Mes produits</Link>}
 
-            <button onClick={logout}>Déconnexion</button>
+            {user?.role === "admin" && <Link to="/admin">Administration</Link>}
+
+            <button onClick={handleLogout}>Déconnexion</button>
           </>
         )}
       </div>
