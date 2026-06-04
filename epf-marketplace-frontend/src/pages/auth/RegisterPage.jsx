@@ -53,6 +53,8 @@ function RegisterPage() {
           </p>
         </div>
 
+        {apiError && <ErrorMessage message={apiError} />}
+
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <FormField
             label="Nom complet"
@@ -68,79 +70,51 @@ function RegisterPage() {
             label="Email"
             name="email"
             type="email"
-<<<<<<< HEAD
-            placeholder="saliou@exemple.com"
+            placeholder="votre@email.com"
             register={register}
             error={errors.email}
             rules={rules.email}
-=======
-            {...register("email", { required: "Email requis" })}
->>>>>>> 374d4685bcc94052bd99d5e0a17db72eee1a5fbb
           />
 
-          {/*  Mot de passe */}
           <FormField
             label="Mot de passe"
             name="password"
             type="password"
-<<<<<<< HEAD
             placeholder="••••••••"
             register={register}
             error={errors.password}
             rules={rules.password}
-=======
-            {...register("password", {
-              required: "Mot de passe requis",
-              minLength: {
-                value: 6,
-                message: "6 caractères minimum",
-              },
-            })}
->>>>>>> 374d4685bcc94052bd99d5e0a17db72eee1a5fbb
           />
 
-<<<<<<< HEAD
-          {/* ✅ Confirmation mot de passe */}
           <FormField
             label="Confirmer le mot de passe"
-            name="confirmPassword"
+            name="password_confirmation"
             type="password"
             placeholder="••••••••"
             register={register}
-            error={errors.confirmPassword}
-            rules={rules.confirmPassword(getValues)}
-=======
-        <div>
-          <label>Confirmation mot de passe</label>
-          <input
-            type="password"
-            {...register("password_confirmation", {
+            error={errors.password_confirmation}
+            rules={{
               required: "Confirmation requise",
               validate: (value) =>
                 value === password || "Les mots de passe ne correspondent pas",
-            })}
->>>>>>> 374d4685bcc94052bd99d5e0a17db72eee1a5fbb
+            }}
           />
 
-<<<<<<< HEAD
-          {/* ✅ Erreur API */}
-          <ErrorMessage
-            message={apiError}
-            onClose={() => setApiError("")}
-          />
-=======
-        <div>
-          <label>Rôle</label>
-          <select {...register("role", { required: "Rôle requis" })}>
-            <option value="">Choisir</option>
-            <option value="buyer">Buyer</option>
-            <option value="seller">Seller</option>
-          </select>
-          {errors.role && <p>{errors.role.message}</p>}
-        </div>
->>>>>>> 374d4685bcc94052bd99d5e0a17db72eee1a5fbb
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Rôle
+            </label>
+            <select
+              {...register("role", { required: "Rôle requis" })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Choisir un rôle</option>
+              <option value="buyer">Acheteur</option>
+              <option value="seller">Vendeur</option>
+            </select>
+            {errors.role && <p className="text-red-500 text-sm mt-1">{errors.role.message}</p>}
+          </div>
 
-          {/* ✅ Bouton */}
           <Button
             type="submit"
             variant="primary"
@@ -151,24 +125,14 @@ function RegisterPage() {
             Créer mon compte
           </Button>
 
-<<<<<<< HEAD
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Déjà inscrit ?{" "}
+            <Link to="/login" className="text-blue-600 hover:underline">
+              Se connecter
+            </Link>
+          </p>
         </form>
-
-        {/* Lien vers login */}
-        <p className="text-sm text-center text-gray-500 mt-6">
-          Déjà un compte ?{" "}
-          <Link to="/login" className="text-blue-600 font-medium hover:underline">
-            Se connecter
-          </Link>
-        </p>
-
       </div>
-=======
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Inscription..." : "S'inscrire"}
-        </button>
-      </form>
->>>>>>> 374d4685bcc94052bd99d5e0a17db72eee1a5fbb
     </div>
   );
 }

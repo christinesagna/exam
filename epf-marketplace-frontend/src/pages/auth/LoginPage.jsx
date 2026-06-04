@@ -52,6 +52,8 @@ function LoginPage() {
           </p>
         </div>
 
+        {apiError && <ErrorMessage message={apiError} />}
+
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <FormField
             label="Email"
@@ -61,28 +63,8 @@ function LoginPage() {
             register={register}
             error={errors.email}
             rules={rules.email}
-=======
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <label>Email</label>
-          <input
-            type="email"
-            {...register('email', {
-              required: 'Email requis',
-            })}
-          />
-          {errors.email && <p>{errors.email.message}</p>}
-        </div>
-
-        <div>
-          <label>Mot de passe</label>
-          <input
-            type="password"
-            {...register("password", { required: "Mot de passe requis" })}
->>>>>>> 374d4685bcc94052bd99d5e0a17db72eee1a5fbb
           />
 
-          {/* ✅ Mot de passe — FormField + règle centralisée */}
           <FormField
             label="Mot de passe"
             name="password"
@@ -93,14 +75,6 @@ function LoginPage() {
             rules={rules.password}
           />
 
-<<<<<<< HEAD
-          {/* ✅ Erreur API */}
-          <ErrorMessage
-            message={apiError}
-            onClose={() => setApiError("")}
-          />
-
-          {/* ✅ Bouton — composant centralisé */}
           <Button
             type="submit"
             variant="primary"
@@ -111,23 +85,14 @@ function LoginPage() {
             Se connecter
           </Button>
 
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Pas encore inscrit ?{" "}
+            <Link to="/register" className="text-blue-600 hover:underline">
+              Créer un compte
+            </Link>
+          </p>
         </form>
-
-        {/* Lien vers register */}
-        <p className="text-sm text-center text-gray-500 mt-6">
-          Pas encore de compte ?{" "}
-          <Link to="/register" className="text-blue-600 font-medium hover:underline">
-            S'inscrire
-          </Link>
-        </p>
-
       </div>
-=======
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Connexion..." : "Se connecter"}
-        </button>
-      </form>
->>>>>>> 374d4685bcc94052bd99d5e0a17db72eee1a5fbb
     </div>
   );
 }
