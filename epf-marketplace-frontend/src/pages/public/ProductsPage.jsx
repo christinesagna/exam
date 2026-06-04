@@ -116,3 +116,4 @@ export default function ProductsPage({ title = "Catalogue" }) {
     </section>
   );
 }
+>>>>>>> 374d4685bcc94052bd99d5e0a17db72eee1a5fbb
