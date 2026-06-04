@@ -1,14 +1,19 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../../hooks/useAuth";
+import { rules } from "../../forms/rules";
+import FormField from "../../forms/FormField";
+import { useToast } from "../../hooks/useToast";
+import ErrorMessage from "../../components/ui/ErrorMessage";
+import Button from "../../components/ui/Button";
 
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
   const { login } = useAuth();
   const [apiError, setApiError] = useState("");
-
   const redirectTo = location.state?.from?.pathname || "/profile";
 
   const {
@@ -21,49 +26,73 @@ function LoginPage() {
     try {
       setApiError("");
       await login(values);
+      toast.auth.loginSuccess();
       navigate(redirectTo, { replace: true });
     } catch (error) {
       const status = error?.response?.status;
 
       if (status === 403) {
-        setApiError("Compte suspendu ou accès refusé.");
+        const msg = "Vous n'avez pas les droits ou votre compte est suspendu.";
+        setApiError(msg);
+        toast.auth.suspended();
       } else {
-        setApiError("Email ou mot de passe invalide.");
+        setApiError("Identifiants invalides.");
+        toast.auth.loginError();
       }
     }
   };
 
   return (
-    <div>
-      <h1>Connexion</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-bold text-gray-900">Connexion</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Bienvenue ! Entrez vos identifiants.
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <label>Email</label>
-          <input
+        {apiError && <ErrorMessage message={apiError} />}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <FormField
+            label="Email"
+            name="email"
             type="email"
-            {...register('email', {
-              required: 'Email requis',
-            })}
+            placeholder="saliou@exemple.com"
+            register={register}
+            error={errors.email}
+            rules={rules.email}
           />
-          {errors.email && <p>{errors.email.message}</p>}
-        </div>
 
-        <div>
-          <label>Mot de passe</label>
-          <input
+          <FormField
+            label="Mot de passe"
+            name="password"
             type="password"
-            {...register("password", { required: "Mot de passe requis" })}
+            placeholder="••••••••"
+            register={register}
+            error={errors.password}
+            rules={rules.password}
           />
-          {errors.password && <p>{errors.password.message}</p>}
-        </div>
 
-        {apiError && <p>{apiError}</p>}
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            loading={isSubmitting}
+            className="w-full mt-2"
+          >
+            Se connecter
+          </Button>
 
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Connexion..." : "Se connecter"}
-        </button>
-      </form>
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Pas encore inscrit ?{" "}
+            <Link to="/register" className="text-blue-600 hover:underline">
+              Créer un compte
+            </Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

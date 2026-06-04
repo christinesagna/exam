@@ -1,15 +1,9 @@
-import { Outlet } from 'react-router-dom';
-import Navbar from './Navbar';
+﻿import { Outlet } from "react-router-dom";
 
-function AppLayout() {
+export default function AppLayout() {
   return (
-    <div>
-      <Navbar />
-      <main className="container">
-        <Outlet />
-      </main>
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-1"><Outlet /></main>
     </div>
   );
 }
-
-export default AppLayout;
