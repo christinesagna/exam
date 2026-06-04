@@ -1,62 +1,17 @@
-import { createContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AuthContext } from "./auth-context";
 import { authService } from "../services/authService";
 import { storage } from "../utils/storage";
-
-export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(storage.getToken());
   const [user, setUser] = useState(storage.getUser());
   const [loading, setLoading] = useState(true);
 
-  const isAuthenticated = !!token;
+  const isAuthenticated = Boolean(token);
   const role = user?.role || null;
 
-  const normalizeAuthResponse = async (response) => {
-    const receivedToken = response?.token || response?.access_token || null;
-    const receivedUser = response?.user || null;
-
-    if (receivedToken) {
-      storage.setToken(receivedToken);
-      setToken(receivedToken);
-    }
-
-    if (receivedUser) {
-      storage.setUser(receivedUser);
-      setUser(receivedUser);
-      return receivedUser;
-    }
-
-    return await fetchMe();
-  };
-
-  const register = async (payload) => {
-    const response = await authService.register(payload);
-    await normalizeAuthResponse(response);
-    return response;
-  };
-
-  const login = async (payload) => {
-    const response = await authService.login(payload);
-    await normalizeAuthResponse(response);
-    return response;
-  };
-
-  const logout = async () => {
-    try {
-      if (storage.getToken()) {
-        await authService.logout();
-      }
-    } catch (error) {
-      // on nettoie quand même le front
-    } finally {
-      storage.clearAuth();
-      setToken(null);
-      setUser(null);
-    }
-  };
-
-  const fetchMe = async () => {
+  const fetchMe = useCallback(async () => {
     const data = await authService.getMe();
     const currentUser = data?.user || data?.data || data;
 
@@ -64,21 +19,75 @@ export function AuthProvider({ children }) {
     setUser(currentUser);
 
     return currentUser;
-  };
+  }, []);
 
-  const updateProfile = async (formData) => {
-    const data = await authService.updateProfile(formData);
-    const updatedUser = data?.user || data?.data || data;
+  const normalizeAuthResponse = useCallback(
+    async (response) => {
+      const receivedToken = response?.token || response?.access_token || null;
+      const receivedUser = response?.user || null;
 
-    if (updatedUser) {
-      storage.setUser(updatedUser);
-      setUser(updatedUser);
-    } else {
-      await fetchMe();
+      if (receivedToken) {
+        storage.setToken(receivedToken);
+        setToken(receivedToken);
+      }
+
+      if (receivedUser) {
+        storage.setUser(receivedUser);
+        setUser(receivedUser);
+        return receivedUser;
+      }
+
+      return fetchMe();
+    },
+    [fetchMe]
+  );
+
+  const register = useCallback(
+    async (payload) => {
+      const response = await authService.register(payload);
+      await normalizeAuthResponse(response);
+      return response;
+    },
+    [normalizeAuthResponse]
+  );
+
+  const login = useCallback(
+    async (payload) => {
+      const response = await authService.login(payload);
+      await normalizeAuthResponse(response);
+      return response;
+    },
+    [normalizeAuthResponse]
+  );
+
+  const logout = useCallback(async () => {
+    try {
+      if (storage.getToken()) {
+        await authService.logout();
+      }
+    } finally {
+      storage.clearAuth();
+      setToken(null);
+      setUser(null);
     }
+  }, []);
 
-    return data;
-  };
+  const updateProfile = useCallback(
+    async (formData) => {
+      const data = await authService.updateProfile(formData);
+      const updatedUser = data?.user || data?.data || data;
+
+      if (updatedUser) {
+        storage.setUser(updatedUser);
+        setUser(updatedUser);
+      } else {
+        await fetchMe();
+      }
+
+      return data;
+    },
+    [fetchMe]
+  );
 
   useEffect(() => {
     const init = async () => {
@@ -86,7 +95,7 @@ export function AuthProvider({ children }) {
         if (storage.getToken()) {
           await fetchMe();
         }
-      } catch (error) {
+      } catch {
         storage.clearAuth();
         setToken(null);
         setUser(null);
@@ -96,7 +105,7 @@ export function AuthProvider({ children }) {
     };
 
     init();
-  }, []);
+  }, [fetchMe]);
 
   const value = useMemo(
     () => ({
@@ -111,7 +120,7 @@ export function AuthProvider({ children }) {
       fetchMe,
       updateProfile,
     }),
-    [token, user, role, loading, isAuthenticated]
+    [token, user, role, loading, isAuthenticated, register, login, logout, fetchMe, updateProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

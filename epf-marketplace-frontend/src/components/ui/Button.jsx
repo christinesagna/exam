@@ -1,14 +1,30 @@
-﻿const VARIANTS = {
-  primary:   "bg-blue-500 hover:bg-blue-600 text-white disabled:bg-blue-300",
-  secondary: "bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-100",
-  danger:    "bg-red-500 hover:bg-red-600 text-white disabled:bg-red-300",
-  ghost:     "bg-transparent hover:bg-gray-100 text-gray-700 border border-gray-300 disabled:text-gray-300",
+const palette = {
+  primary: {
+    background: "#2563eb",
+    color: "#ffffff",
+    border: "1px solid #2563eb",
+  },
+  secondary: {
+    background: "#4b5563",
+    color: "#ffffff",
+    border: "1px solid #4b5563",
+  },
+  danger: {
+    background: "#dc2626",
+    color: "#ffffff",
+    border: "1px solid #dc2626",
+  },
+  ghost: {
+    background: "#ffffff",
+    color: "#111827",
+    border: "1px solid #d1d5db",
+  },
 };
 
-const SIZES = {
-  sm: "px-3 py-1 text-sm",
-  md: "px-4 py-2 text-base",
-  lg: "px-5 py-3 text-lg",
+const sizes = {
+  sm: { padding: "8px 12px", fontSize: 14 },
+  md: { padding: "10px 16px", fontSize: 15 },
+  lg: { padding: "12px 20px", fontSize: 16 },
 };
 
 export default function Button({
@@ -26,22 +42,22 @@ export default function Button({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className={`
-        inline-flex items-center justify-center gap-2
-        rounded-lg font-medium transition-colors duration-200
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-        disabled:cursor-not-allowed
-        `+VARIANTS[variant]+` `+SIZES[size]+` `+className+`
-      `}
+      className={className}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        borderRadius: 10,
+        fontWeight: 600,
+        cursor: disabled || loading ? "not-allowed" : "pointer",
+        opacity: disabled || loading ? 0.7 : 1,
+        transition: "all 0.2s ease",
+        ...palette[variant],
+        ...sizes[size],
+      }}
     >
-      {loading && (
-        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10"
-            stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor"
-            d="M4 12a8 8 0 018-8v8z" />
-        </svg>
-      )}
+      {loading && <span aria-hidden="true">⏳</span>}
       {children}
     </button>
   );

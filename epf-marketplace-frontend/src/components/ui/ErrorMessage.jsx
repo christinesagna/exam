@@ -1,13 +1,33 @@
-function ErrorMessage({ message = 'Une erreur est survenue.', onClose }) {
+function ErrorMessage({ message = "Une erreur est survenue.", onClose }) {
   if (!message) return null;
 
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex justify-between items-center">
-      <p className="text-red-700 text-sm">{message}</p>
+    <div
+      style={{
+        background: "#fef2f2",
+        border: "1px solid #fecaca",
+        color: "#991b1b",
+        borderRadius: 12,
+        padding: "14px 16px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 12,
+        marginBottom: 16,
+      }}
+    >
+      <p style={{ margin: 0, fontSize: 14 }}>{message}</p>
       {onClose && (
         <button
+          type="button"
           onClick={onClose}
-          className="text-red-500 hover:text-red-700 font-bold"
+          style={{
+            border: "none",
+            background: "transparent",
+            color: "#991b1b",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
         >
           ✕
         </button>

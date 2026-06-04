@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { useAuth } from "../../hooks/useAuth";
-import { rules } from "../../forms/rules";
-import FormField from "../../forms/FormField";
-import { useToast } from "../../hooks/useToast";
-import ErrorMessage from "../../components/ui/ErrorMessage";
 import Button from "../../components/ui/Button";
+import ErrorMessage from "../../components/ui/ErrorMessage";
+import FormField from "../../forms/FormField";
+import { rules } from "../../forms/rules";
+import { useAuth } from "../../hooks/useAuth";
+import { useToast } from "../../hooks/useToast";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -43,23 +43,22 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Connexion</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Bienvenue ! Entrez vos identifiants.
-          </p>
+    <section className="auth-shell">
+      <div className="auth-card">
+        <div className="auth-header">
+          <p className="eyebrow"></p>
+          <h1>Connexion</h1>
+          <p className="page-subtitle"></p>
         </div>
 
         {apiError && <ErrorMessage message={apiError} />}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
           <FormField
             label="Email"
             name="email"
             type="email"
-            placeholder="saliou@exemple.com"
+            placeholder="sa@exemple.com"
             register={register}
             error={errors.email}
             rules={rules.email}
@@ -75,25 +74,16 @@ function LoginPage() {
             rules={rules.password}
           />
 
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            loading={isSubmitting}
-            className="w-full mt-2"
-          >
-            Se connecter
+          <Button type="submit" loading={isSubmitting} className="full-width">
+            {isSubmitting ? "Connexion..." : "Se connecter"}
           </Button>
 
-          <p className="text-center text-sm text-gray-600 mt-4">
-            Pas encore inscrit ?{" "}
-            <Link to="/register" className="text-blue-600 hover:underline">
-              Créer un compte
-            </Link>
+          <p className="auth-footer-text">
+            Pas encore inscrit ? <Link to="/register">Créer un compte</Link>
           </p>
         </form>
       </div>
-    </div>
+    </section>
   );
 }
 
