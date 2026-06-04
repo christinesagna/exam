@@ -6,6 +6,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import ProtectedRoute from './ProtectedRoute';
 import RoleGuard from './RoleGuard';
 
+
 // Pages publiques
 import HomePage from '../pages/public/HomePage';
 import ProductsPage from '../pages/public/ProductsPage';

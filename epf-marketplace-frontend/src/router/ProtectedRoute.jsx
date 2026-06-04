@@ -1,13 +1,9 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import Loader from '../components/common/Loader';
+﻿import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
-function ProtectedRoute() {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) return <Loader />;
-
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+export default function ProtectedRoute() {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return <div>Chargement...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Outlet />;
 }
-
-export default ProtectedRoute;
