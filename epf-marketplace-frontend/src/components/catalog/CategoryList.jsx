@@ -1,44 +1,49 @@
-export default function CategoryList({
-  categories = [],
-  activeCategory = "",
-  onSelect,
-}) {
+export default function CategoryList({ categories = [], activeCategory, onSelect }) {
   return (
     <div
       style={{
-        display: "flex",
-        gap: "8px",
-        flexWrap: "wrap",
-        marginBottom: "16px",
+        padding: "16px",
+        border: "1px solid #e5e7eb",
+        borderRadius: "12px",
+        background: "#fff",
       }}
     >
+      <h3 style={{ marginTop: 0 }}>Catégories</h3>
       <button
-        onClick={() => onSelect?.("")}
-        style={buttonStyle(activeCategory === "")}
+        type="button"
+        onClick={() => onSelect?.(null)}
+        style={{
+          marginBottom: "12px",
+          background: "transparent",
+          border: "none",
+          color: activeCategory ? "#2563eb" : "#111827",
+          cursor: "pointer",
+          textAlign: "left",
+          width: "100%",
+        }}
       >
-        Toutes
+        Toutes les catégories
       </button>
-
       {categories.map((category) => (
         <button
           key={category.id}
-          onClick={() => onSelect?.(String(category.id))}
-          style={buttonStyle(String(activeCategory) === String(category.id))}
+          type="button"
+          onClick={() => onSelect?.(category.id)}
+          style={{
+            display: "block",
+            width: "100%",
+            textAlign: "left",
+            padding: "8px 0",
+            border: "none",
+            background: "transparent",
+            color: activeCategory === category.id ? "#2563eb" : "#374151",
+            fontWeight: activeCategory === category.id ? 600 : 400,
+            cursor: "pointer",
+          }}
         >
           {category.name}
         </button>
       ))}
     </div>
   );
-}
-
-function buttonStyle(active) {
-  return {
-    padding: "8px 14px",
-    borderRadius: "999px",
-    border: active ? "1px solid #2563eb" : "1px solid #d1d5db",
-    background: active ? "#dbeafe" : "#fff",
-    color: active ? "#1d4ed8" : "#111827",
-    cursor: "pointer",
-  };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function SearchBar({
   initialValue = "",
@@ -7,12 +7,8 @@ export default function SearchBar({
 }) {
   const [value, setValue] = useState(initialValue);
 
-  useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (event) => {
+    event.preventDefault();
     onSearch?.(value.trim());
   };
 
@@ -29,7 +25,7 @@ export default function SearchBar({
       <input
         type="search"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(event) => setValue(event.target.value)}
         placeholder={placeholder}
         style={{
           flex: 1,

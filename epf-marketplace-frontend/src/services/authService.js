@@ -1,35 +1,33 @@
 import axiosClient from "./api/axiosClient";
 
 export const authService = {
-  register: async (payload) => {
+  async register(payload) {
     const { data } = await axiosClient.post("/auth/register", payload);
     return data;
   },
 
-  login: async (payload) => {
+  async login(payload) {
     const { data } = await axiosClient.post("/auth/login", payload);
     return data;
   },
 
-  logout: async () => {
+  async logout() {
     const { data } = await axiosClient.post("/auth/logout");
     return data;
   },
 
-  getMe: async () => {
+  async getMe() {
     const { data } = await axiosClient.get("/auth/me");
     return data;
   },
 
-  updateProfile: async (formData) => {
+  async updateProfile(formData) {
     const { data } = await axiosClient.post("/auth/profile", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-      params: {
-        _method: "PUT",
-      },
     });
+
     return data;
   },
 };

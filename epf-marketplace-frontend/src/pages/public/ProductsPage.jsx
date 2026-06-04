@@ -4,8 +4,8 @@ import CategoryList from "../../components/catalog/CategoryList";
 import ProductFilters from "../../components/catalog/ProductFilters";
 import ProductGrid from "../../components/catalog/ProductGrid";
 import Pagination from "../../components/catalog/Pagination";
-import { productService } from "../../services/productService";
 import { useCatalogParams } from "../../hooks/useCatalogParams";
+import { productService } from "../../services/productService";
 
 export default function ProductsPage({ title = "Catalogue" }) {
   const { params, updateParams, resetParams, setPage } = useCatalogParams();
@@ -70,28 +70,30 @@ export default function ProductsPage({ title = "Catalogue" }) {
   ]);
 
   return (
-    <section>
-      <h1>{title}</h1>
+    <section className="page-section">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Catalogue public</p>
+          <h1>{title}</h1>
+          <p className="page-subtitle">Parcourez le catalogue et trouvez rapidement un produit.</p>
+        </div>
+      </div>
 
-      <SearchBar
-        initialValue={params.q}
-        onSearch={(q) => updateParams({ q, page: 1 })}
-      />
+      <div className="app-card" style={{ marginBottom: 20 }}>
+        <SearchBar
+          key={params.q || "catalog-search"}
+          initialValue={params.q}
+          onSearch={(q) => updateParams({ q, page: 1 })}
+        />
 
-      <CategoryList
-        categories={categories}
-        activeCategory={params.category_id}
-        onSelect={(categoryId) => updateParams({ category_id: categoryId, page: 1 })}
-      />
+        <CategoryList
+          categories={categories}
+          activeCategory={params.category_id}
+          onSelect={(categoryId) => updateParams({ category_id: categoryId, page: 1 })}
+        />
+      </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "280px 1fr",
-          gap: "20px",
-          alignItems: "start",
-        }}
-      >
+      <div className="catalog-layout">
         <ProductFilters
           categories={categories}
           values={params}
@@ -116,4 +118,3 @@ export default function ProductsPage({ title = "Catalogue" }) {
     </section>
   );
 }
->>>>>>> 374d4685bcc94052bd99d5e0a17db72eee1a5fbb

@@ -32,6 +32,7 @@ export default function ProductFilters({
       >
         <h3 style={{ margin: 0 }}>Filtres</h3>
         <button
+          type="button"
           onClick={onReset}
           style={{
             border: "none",
@@ -83,14 +84,14 @@ export default function ProductFilters({
       <div>
         <label>Trier par</label>
         <select
-          value={values.sort || "latest"}
+          value={values.sort || "newest"}
           onChange={(e) => handleFieldChange("sort", e.target.value)}
           style={inputStyle}
         >
-          <option value="latest">Plus récents</option>
-          <option value="price_asc">Prix croissant</option>
-          <option value="price_desc">Prix décroissant</option>
-          <option value="popular">Populaires</option>
+          <option value="newest">Plus récents</option>
+          <option value="cheapest">Moins chers</option>
+          <option value="popular">Plus vendus</option>
+          <option value="most_rated">Mieux notés</option>
         </select>
       </div>
     </aside>

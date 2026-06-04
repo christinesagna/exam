@@ -1,89 +1,53 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import Loader from "../../components/common/Loader";
-import ErrorMessage from "../../components/common/ErrorMessage";
+import { useParams, Link } from "react-router-dom";
 import ProductGrid from "../../components/catalog/ProductGrid";
-import Pagination from "../../components/catalog/Pagination";
+import Loader from "../../components/common/Loader";
 import { productService } from "../../services/productService";
 
 export default function SellerPublicPage() {
   const { id } = useParams();
-
   const [seller, setSeller] = useState(null);
-  const [productsData, setProductsData] = useState({
-    items: [],
-    currentPage: 1,
-    lastPage: 1,
-  });
-  const [page, setPage] = useState(1);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadSellerPage = async () => {
+    const loadSeller = async () => {
       try {
         setLoading(true);
-        setError("");
-
-        const [sellerData, sellerProducts] = await Promise.all([
-          productService.getSellerPublic(id),
-          productService.getSellerProducts(id, { page }),
-        ]);
-
-        setSeller(sellerData);
-        setProductsData(sellerProducts);
+        const profile = await productService.getSellerPublic(id);
+        setSeller(profile);
+        const productResult = await productService.getSellerProducts(id);
+        setProducts(productResult.items || []);
       } catch {
-        setError("Impossible de charger la page publique du vendeur.");
+        setError("Impossible de charger le profil du vendeur.");
       } finally {
         setLoading(false);
       }
     };
 
-    loadSellerPage();
-  }, [id, page]);
+    loadSeller();
+  }, [id]);
 
-  if (loading) return <Loader />;
-  if (error) return <ErrorMessage message={error} />;
+  if (loading) return <Loader text="Chargement du vendeur..." />;
 
   return (
-    <section>
-      <div
-        style={{
-          padding: "24px",
-          border: "1px solid #e5e7eb",
-          borderRadius: "16px",
-          background: "#fff",
-          marginBottom: "24px",
-        }}
-      >
-        <h1 style={{ marginTop: 0 }}>
-          {seller?.shop_name || seller?.name || "Vendeur"}
-        </h1>
-
-        <p style={{ color: "#4b5563" }}>
-          {seller?.bio || seller?.description || "Aucune description disponible."}
-        </p>
-
-        {seller?.email && (
-          <p>
-            <strong>Email :</strong> {seller.email}
-          </p>
-        )}
+    <section className="page-section">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Vendeur</p>
+          <h1>{seller?.name || "Profil du vendeur"}</h1>
+        </div>
       </div>
 
-      <h2>Produits du vendeur</h2>
-
-      <ProductGrid
-        products={productsData.items}
-        loading={false}
-        error=""
-      />
-
-      <Pagination
-        currentPage={productsData.currentPage}
-        lastPage={productsData.lastPage}
-        onPageChange={setPage}
-      />
+      {error ? (
+        <div className="app-card">
+          <p>{error}</p>
+          <Link to="/products">Retour au catalogue</Link>
+        </div>
+      ) : (
+        <ProductGrid products={products} loading={loading} error={error} />
+      )}
     </section>
   );
 }

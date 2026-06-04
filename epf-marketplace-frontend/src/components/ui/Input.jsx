@@ -1,64 +1,49 @@
-export default function Input({ type = "text", placeholder = "", value, onChange, className = "" }) {
+export default function Input({
+  label,
+  name,
+  type = "text",
+  placeholder = "",
+  value,
+  onChange,
+  disabled = false,
+  error = "",
+  className = "",
+  iconLeft = null,
+  iconRight = null,
+  ...rest
+}) {
   return (
-    <div className="flex flex-col gap-1 w-full">
-
-      {/* Label */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
       {label && (
-        <label
-          htmlFor={name}
-          className="text-sm font-medium text-gray-700"
-        >
+        <label htmlFor={name} style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>
           {label}
         </label>
       )}
 
-      {/* Wrapper input + icônes */}
-      <div className="relative flex items-center">
-
-        {/* Icône gauche */}
-        {iconLeft && (
-          <span className="absolute left-3 text-gray-400">
-            {iconLeft}
-          </span>
-        )}
-
+      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+        {iconLeft && <span style={{ position: "absolute", left: 12 }}>{iconLeft}</span>}
         <input
           id={name}
           name={name}
           type={type}
           placeholder={placeholder}
+          value={value}
+          onChange={onChange}
           disabled={disabled}
-          className={`
-            w-full rounded-lg border px-4 py-2 text-sm
-            transition-colors duration-200
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-            disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-400
-            ${error
-              ? "border-red-500 bg-red-50 text-red-900 placeholder-red-300"
-              : "border-gray-300 bg-white text-gray-900 placeholder-gray-400"
-            }
-            ${iconLeft  ? "pl-10" : ""}
-            ${iconRight ? "pr-10" : ""}
-            ${className}
-          `}
+          style={{
+            width: "100%",
+            borderRadius: 10,
+            border: `1px solid ${error ? "#ef4444" : "#d1d5db"}`,
+            padding: `10px ${iconRight ? 42 : 14}px 10px ${iconLeft ? 42 : 14}px`,
+            background: disabled ? "#f3f4f6" : "#ffffff",
+          }}
+          className={className}
           {...rest}
         />
-
-        {/* Icône droite */}
-        {iconRight && (
-          <span className="absolute right-3 text-gray-400">
-            {iconRight}
-          </span>
-        )}
+        {iconRight && <span style={{ position: "absolute", right: 12 }}>{iconRight}</span>}
       </div>
 
-      {/* Message d'erreur */}
-      {error && (
-        <p className="text-xs text-red-500 flex items-center gap-1">
-          <span>⚠</span> {error}
-        </p>
-      )}
-
+      {error && <p style={{ margin: 0, color: "#dc2626", fontSize: 13 }}>{error}</p>}
     </div>
   );
 }

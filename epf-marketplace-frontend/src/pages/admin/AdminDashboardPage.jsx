@@ -1,34 +1,20 @@
-import { useState, useEffect } from "react";
-import Table from "../../components/ui/Table";
-import Badge from "../../components/ui/Badge";
-import { getProducts } from "../../services/productService";
+import { Link } from "react-router-dom";
 
 export default function AdminDashboardPage() {
-  const [products, setProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    getProducts().then((data) => {
-      setProducts(data);
-      setIsLoading(false);
-    });
-  }, []);
-
-  const columns = [
-    { key: "name", label: "Produit" },
-    { key: "price", label: "Prix", render: (row) => `${row.price} €` },
-    {
-      key: "status",
-      label: "Statut",
-      render: (row) => <Badge variant="success">{row.status}</Badge>,
-    },
-  ];
-
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">Produits</h1>
-      <Table columns={columns} data={products} loading={isLoading} />
-    </div>
+    <section className="page-section">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Espace administrateur</p>
+          <h1>Tableau de bord admin</h1>
+          <p className="page-subtitle">Surveillez les utilisateurs, les produits et les commandes.</p>
+        </div>
+      </div>
+
+      <div className="app-card">
+        <p>Fonctionnalités d'administration disponibles prochainement.</p>
+        <Link to="/admin/products">Gérer les produits</Link>
+      </div>
+    </section>
   );
 }
-
