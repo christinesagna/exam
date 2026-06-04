@@ -1,5 +1,113 @@
 import axiosClient from "./api/axiosClient";
 
+
+async function getWithFallback(urls, config = {}) {
+  let lastError;
+
+  for (const url of urls) {
+    try {
+      const response = await axiosClient.get(url, config);
+      return response.data;
+    } catch (error) {
+      lastError = error;
+
+      const status = error?.response?.status;
+      if (status && status !== 404 && status !== 405) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+function normalizeListResponse(raw) {
+  const root = raw?.data ?? raw;
+
+  const items =
+    root?.data ||
+    root?.products ||
+    root?.items ||
+    (Array.isArray(root) ? root : []);
+
+  return {
+    items,
+    currentPage: root?.current_page || root?.meta?.current_page || 1,
+    lastPage: root?.last_page || root?.meta?.last_page || 1,
+    total: root?.total || root?.meta?.total || items.length,
+  };
+}
+
+function normalizeSingleResponse(raw) {
+  return raw?.data || raw?.product || raw?.seller || raw?.user || raw;
+}
+
+export const productService = {
+  async list(params = {}) {
+    const data = await getWithFallback(
+      ["/products", "/public/products"],
+      { params }
+    );
+
+    return normalizeListResponse(data);
+  },
+
+  async search(params = {}) {
+    try {
+      const data = await getWithFallback(
+        ["/products/search", "/search/products"],
+        { params }
+      );
+
+      return normalizeListResponse(data);
+    } catch {
+      return this.list(params);
+    }
+  },
+
+  async getById(id) {
+    const data = await getWithFallback([
+      `/products/${id}`,
+      `/public/products/${id}`,
+    ]);
+
+    return normalizeSingleResponse(data);
+  },
+
+  async getCategories() {
+    const data = await getWithFallback([
+      "/categories",
+      "/public/categories",
+    ]);
+
+    const root = data?.data ?? data;
+    return root?.data || root?.categories || (Array.isArray(root) ? root : []);
+  },
+
+  async getSellerPublic(id) {
+    const data = await getWithFallback([
+      `/sellers/${id}`,
+      `/seller/${id}`,
+      `/users/${id}`,
+    ]);
+
+    return normalizeSingleResponse(data);
+  },
+
+  async getSellerProducts(id, params = {}) {
+    const data = await getWithFallback(
+      [
+        `/sellers/${id}/products`,
+        `/seller/${id}/products`,
+        `/users/${id}/products`,
+      ],
+      { params }
+    );
+
+    return normalizeListResponse(data);
+  },
+};
+
 /**
  * ── Catalogue public ──────────────────────────────────────────
  */
@@ -125,30 +233,6 @@ export const createReview = async (productId, payload) => {
 export const deleteReview = async (reviewId) => {
   const { data } = await axiosClient.delete(`/reviews/${reviewId}`);
   return data;
-};
-
-/**
- * ── Compatibilité avec l'ancienne convention Dev A ────────────
- */
-
-export const productService = {
-  getAll: getProducts,
-  getById: getProduct,
-  getTopSelling,
-  getProductReviews,
-  isProductFavorite,
-  getCategories,
-  getCategory,
-  searchProducts,
-  getSellerProfile,
-  getSellerProducts,
-  getSellerReviews,
-  getMyProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  createReview,
-  deleteReview,
 };
 
 export default productService;
