@@ -1,8 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 
 import AppLayout from "../components/layout/AppLayout";
-import DashboardLayout from "../pages/admin/DashboardLayout";
-
+import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import RoleGuard from "./RoleGuard";
 
@@ -15,7 +14,6 @@ import SellerPublicPage from "../pages/public/SellerPublicPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ProfilePage from "../pages/auth/ProfilePage";
-import LogoutPage from "../pages/auth/LogoutPage";
 
 import CartPage from "../pages/buyer/CartPage";
 import OrdersPage from "../pages/buyer/OrdersPage";
@@ -45,7 +43,6 @@ export default function AppRouter() {
         <Route path="/forbidden" element={<ForbiddenPage />} />
 
         <Route element={<ProtectedRoute />}>
-          <Route path="/logout" element={<LogoutPage />} />
           <Route path="/profile" element={<ProfilePage />} />
 
           <Route element={<RoleGuard allowedRoles={["buyer"]} />}>
@@ -61,7 +58,6 @@ export default function AppRouter() {
           <Route element={<RoleGuard allowedRoles={["admin"]} />}>
             <Route element={<DashboardLayout />}>
               <Route path="/admin" element={<AdminDashboardPage />} />
-              <Route path="/admin/orders" element={<OrdersPage />} />
               <Route path="/admin/products" element={<ProductsAdminPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
             </Route>

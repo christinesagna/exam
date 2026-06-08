@@ -2,42 +2,55 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 
 const linkStyle = ({ isActive }) => ({
-  color: isActive ? "#2563eb" : "#111827",
+  textDecoration: "none",
+  color: isActive ? "#2563eb" : "#334155",
   fontWeight: isActive ? 700 : 500,
-  marginRight: 16,
 });
 
-function Navbar({ onMenuClick }) {
+export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login", { replace: true });
+    navigate("/login");
   };
 
   return (
-    <header className="topbar">
-      <div className="container topbar-inner">
-        <div className="topbar-brand">
-          {onMenuClick && (
-            <button type="button" className="icon-button" onClick={onMenuClick}>
-              ☰
-            </button>
-          )}
-          <Link to="/" className="brand-link">
+    <header
+      style={{
+        background: "#ffffff",
+        borderBottom: "1px solid #e2e8f0",
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "14px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+          <Link to="/" style={{ textDecoration: "none", color: "#0f172a", fontWeight: 800 }}>
             EPF Marketplace
           </Link>
-        </div>
-
-        <nav className="topbar-nav">
-          <NavLink to="/" style={linkStyle} end>
-            Accueil
-          </NavLink>
           <NavLink to="/products" style={linkStyle}>
             Catalogue
           </NavLink>
+          <NavLink to="/search?q=" style={linkStyle}>
+            Recherche
+          </NavLink>
+        </div>
 
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           {!isAuthenticated ? (
             <>
               <NavLink to="/login" style={linkStyle}>
@@ -49,50 +62,33 @@ function Navbar({ onMenuClick }) {
             </>
           ) : (
             <>
-              <NavLink to="/profile" style={linkStyle}>
-                Mon profil
-              </NavLink>
-
-              {user?.role === "buyer" && (
-                <>
-                  <NavLink to="/cart" style={linkStyle}>
-                    Panier
-                  </NavLink>
-                  <NavLink to="/orders" style={linkStyle}>
-                    Commandes
-                  </NavLink>
-                </>
-              )}
-
-              {user?.role === "seller" && (
-                <>
-                  <NavLink to="/seller" style={linkStyle}>
-                    Dashboard vendeur
-                  </NavLink>
-                  <NavLink to="/seller/products" style={linkStyle}>
-                    Mes produits
-                  </NavLink>
-                </>
-              )}
-
-              {user?.role === "admin" && (
-                <NavLink to="/admin" style={linkStyle}>
-                  Administration
-                </NavLink>
-              )}
-
-              <span className="topbar-user-chip">
-                {user?.name || "Utilisateur"} · {user?.role || "compte"}
+              <span style={{ color: "#64748b", fontSize: 14 }}>
+                {user?.name || user?.email || "Utilisateur"}
               </span>
-              <button type="button" className="outline-button" onClick={handleLogout}>
+              <NavLink to="/profile" style={linkStyle}>
+                Profil
+              </NavLink>
+              {user?.role === "buyer" && <NavLink to="/cart" style={linkStyle}>Panier</NavLink>}
+              {user?.role === "seller" && <NavLink to="/seller" style={linkStyle}>Espace vendeur</NavLink>}
+              {user?.role === "admin" && <NavLink to="/admin" style={linkStyle}>Admin</NavLink>}
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={{
+                  border: "none",
+                  background: "#0f172a",
+                  color: "#fff",
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+              >
                 Déconnexion
               </button>
             </>
           )}
-        </nav>
+        </div>
       </div>
     </header>
   );
 }
-
-export default Navbar;

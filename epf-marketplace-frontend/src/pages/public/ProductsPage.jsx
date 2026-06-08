@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import SearchBar from "../../components/catalog/SearchBar";
 import CategoryList from "../../components/catalog/CategoryList";
 import ProductFilters from "../../components/catalog/ProductFilters";
 import ProductGrid from "../../components/catalog/ProductGrid";
 import Pagination from "../../components/catalog/Pagination";
-import { useCatalogParams } from "../../hooks/useCatalogParams";
 import { productService } from "../../services/productService";
+import { useCatalogParams } from "../../hooks/useCatalogParams";
 
 export default function ProductsPage({ title = "Catalogue" }) {
   const { params, updateParams, resetParams, setPage } = useCatalogParams();
 
   const [categories, setCategories] = useState([]);
+  const [topSelling, setTopSelling] = useState([]);
   const [productsData, setProductsData] = useState({
     items: [],
     currentPage: 1,
@@ -21,16 +23,22 @@ export default function ProductsPage({ title = "Catalogue" }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadStaticData = async () => {
       try {
-        const data = await productService.getCategories();
-        setCategories(data);
+        const [loadedCategories, loadedTopSelling] = await Promise.all([
+          productService.getCategories(),
+          productService.topSelling(6),
+        ]);
+
+        setCategories(loadedCategories);
+        setTopSelling(loadedTopSelling.items || []);
       } catch {
         setCategories([]);
+        setTopSelling([]);
       }
     };
 
-    loadCategories();
+    loadStaticData();
   }, []);
 
   useEffect(() => {
@@ -39,21 +47,6 @@ export default function ProductsPage({ title = "Catalogue" }) {
         setLoading(true);
         setError("");
 
-        if (
-          params.min_price &&
-          params.max_price &&
-          Number(params.min_price) > Number(params.max_price)
-        ) {
-          setError("Le prix minimum ne peut pas être supérieur au prix maximum.");
-          setProductsData({
-            items: [],
-            currentPage: 1,
-            lastPage: 1,
-            total: 0,
-          });
-          return;
-        }
-
         const payload = {
           q: params.q || undefined,
           category_id: params.category_id || undefined,
@@ -61,57 +54,81 @@ export default function ProductsPage({ title = "Catalogue" }) {
           max_price: params.max_price || undefined,
           sort: params.sort || undefined,
           page: params.page || 1,
+          per_page: 12,
         };
 
-        const result = params.q
-          ? await productService.search(payload)
-          : await productService.list(payload);
-
+        const result = await productService.list(payload);
         setProductsData(result);
       } catch {
-        setError("Impossible de charger les produits.");
+        setError("Impossible de charger le catalogue public.");
       } finally {
         setLoading(false);
       }
     };
 
     loadProducts();
-  }, [
-    params.q,
-    params.category_id,
-    params.min_price,
-    params.max_price,
-    params.sort,
-    params.page,
-  ]);
+  }, [params.q, params.category_id, params.min_price, params.max_price, params.sort, params.page]);
+
+  const hasFilters = Boolean(
+    params.q || params.category_id || params.min_price || params.max_price || params.sort
+  );
 
   return (
-    <section className="page-section">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Catalogue public</p>
-          <h1>{title}</h1>
-          <p className="page-subtitle">
-            Parcourez le catalogue et trouvez rapidement un produit.
-          </p>
-        </div>
-      </div>
-
-      <div className="app-card" style={{ marginBottom: 20 }}>
+    <section style={{ display: "grid", gap: 24 }}>
+      <div
+        style={{
+          padding: 24,
+          borderRadius: 18,
+          background: "linear-gradient(135deg, #eff6ff, #dbeafe)",
+        }}
+      >
+        <h1 style={{ margin: 0, marginBottom: 8 }}>{title}</h1>
+        <p style={{ marginTop: 0, color: "#334155" }}>
+          Explore les produits, filtre par catégorie ou prix, et garde les paramètres dans l’URL.
+        </p>
         <SearchBar
-          key={params.q || "catalog-search"}
           initialValue={params.q}
           onSearch={(q) => updateParams({ q, page: 1 })}
-        />
-
-        <CategoryList
-          categories={categories}
-          activeCategory={params.category_id}
-          onSelect={(categoryId) => updateParams({ category_id: categoryId, page: 1 })}
+          placeholder="Rechercher un produit..."
         />
       </div>
 
-      <div className="catalog-layout">
+      <CategoryList
+        categories={categories}
+        activeCategory={params.category_id}
+        onSelect={(categoryId) => updateParams({ category_id: categoryId, page: 1 })}
+      />
+
+      {!hasFilters && topSelling.length > 0 && (
+        <div
+          style={{
+            padding: 20,
+            borderRadius: 16,
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            <div>
+              <h2 style={{ margin: 0 }}>Top-selling</h2>
+              <p style={{ margin: "6px 0 0", color: "#64748b" }}>Produits les plus consultés ou vendus.</p>
+            </div>
+            <Link to="/products" style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>
+              Voir tout
+            </Link>
+          </div>
+          <ProductGrid products={topSelling} loading={false} error="" />
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "280px 1fr",
+          gap: 20,
+          alignItems: "start",
+        }}
+      >
         <ProductFilters
           categories={categories}
           values={params}
@@ -119,16 +136,12 @@ export default function ProductsPage({ title = "Catalogue" }) {
           onReset={resetParams}
         />
 
-        <div>
-          <div className="app-card" style={{ marginBottom: 16 }}>
-            <strong>{productsData.total}</strong> produit(s) trouvé(s)
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ color: "#64748b", fontSize: 14 }}>
+            {loading ? "Chargement du catalogue..." : `${productsData.total} produit(s) trouvé(s)`}
           </div>
 
-          <ProductGrid
-            products={productsData.items}
-            loading={loading}
-            error={error}
-          />
+          <ProductGrid products={productsData.items} loading={loading} error={error} />
 
           <Pagination
             currentPage={productsData.currentPage}
