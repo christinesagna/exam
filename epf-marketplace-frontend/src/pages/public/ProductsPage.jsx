@@ -15,6 +15,7 @@ export default function ProductsPage({ title = "Catalogue" }) {
     items: [],
     currentPage: 1,
     lastPage: 1,
+    total: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -37,6 +38,21 @@ export default function ProductsPage({ title = "Catalogue" }) {
       try {
         setLoading(true);
         setError("");
+
+        if (
+          params.min_price &&
+          params.max_price &&
+          Number(params.min_price) > Number(params.max_price)
+        ) {
+          setError("Le prix minimum ne peut pas être supérieur au prix maximum.");
+          setProductsData({
+            items: [],
+            currentPage: 1,
+            lastPage: 1,
+            total: 0,
+          });
+          return;
+        }
 
         const payload = {
           q: params.q || undefined,
@@ -75,7 +91,9 @@ export default function ProductsPage({ title = "Catalogue" }) {
         <div>
           <p className="eyebrow">Catalogue public</p>
           <h1>{title}</h1>
-          <p className="page-subtitle">Parcourez le catalogue et trouvez rapidement un produit.</p>
+          <p className="page-subtitle">
+            Parcourez le catalogue et trouvez rapidement un produit.
+          </p>
         </div>
       </div>
 
@@ -102,6 +120,10 @@ export default function ProductsPage({ title = "Catalogue" }) {
         />
 
         <div>
+          <div className="app-card" style={{ marginBottom: 16 }}>
+            <strong>{productsData.total}</strong> produit(s) trouvé(s)
+          </div>
+
           <ProductGrid
             products={productsData.items}
             loading={loading}

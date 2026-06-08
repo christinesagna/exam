@@ -41,10 +41,10 @@ export default function ProductDetailsPage() {
       <div className="app-card">
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 260 }}>
-            {product?.image_url ? (
+            {(product?.image_url || product?.image) ? (
               <img
-                src={product.image_url}
-                alt={product.name}
+                src={product.image_url || product.image}
+                alt={product.title || product.name}
                 style={{ width: "100%", borderRadius: 16, objectFit: "cover" }}
               />
             ) : (
@@ -54,7 +54,7 @@ export default function ProductDetailsPage() {
             )}
           </div>
           <div style={{ flex: 2, minWidth: 260 }}>
-            <h1>{product?.name || "Produit"}</h1>
+            <h1>{product?.title || product?.name || "Produit"}</h1>
             <div style={{ marginTop: 20 }}>
               <p><strong>Prix :</strong> {product?.price ? `${product.price} FCFA` : "Non défini"}</p>
               <p><strong>Catégorie :</strong> {product?.category?.name || "—"}</p>

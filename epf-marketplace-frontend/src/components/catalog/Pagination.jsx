@@ -1,8 +1,21 @@
-export default function Pagination({ currentPage = 1, lastPage = 1, onPageChange }) {
+export default function Pagination({
+  currentPage = 1,
+  lastPage = 1,
+  onPageChange,
+}) {
   if (lastPage <= 1) return null;
 
   return (
-    <div style={{ display: "flex", gap: 8, marginTop: 24, alignItems: "center" }}>
+    <div
+      style={{
+        display: "flex",
+        gap: 8,
+        marginTop: 24,
+        alignItems: "center",
+        justifyContent: "center",
+        flexWrap: "wrap",
+      }}
+    >
       <button
         type="button"
         disabled={currentPage <= 1}
@@ -11,9 +24,11 @@ export default function Pagination({ currentPage = 1, lastPage = 1, onPageChange
       >
         Précédent
       </button>
+
       <span>
         Page {currentPage} sur {lastPage}
       </span>
+
       <button
         type="button"
         disabled={currentPage >= lastPage}
