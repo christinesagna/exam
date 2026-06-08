@@ -1,24 +1,13 @@
-import { Outlet, useLocation } from "react-router-dom";
-import Footer from "./Footer";
+import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 
 export default function AppLayout() {
-  const location = useLocation();
-  const isAdminArea = location.pathname.startsWith("/admin");
-
-  if (isAdminArea) {
-    return <Outlet />;
-  }
-
   return (
-    <div className="site-shell">
+    <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a" }}>
       <Navbar />
-      <main className="site-main">
-        <div className="container">
-          <Outlet />
-        </div>
+      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 16px 40px" }}>
+        <Outlet />
       </main>
-      <Footer />
     </div>
   );
 }

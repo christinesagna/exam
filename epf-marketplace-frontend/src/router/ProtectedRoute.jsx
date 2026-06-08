@@ -1,5 +1,4 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import Loader from "../components/common/Loader";
 import { useAuth } from "../hooks/useAuth";
 
 export default function ProtectedRoute() {
@@ -7,7 +6,7 @@ export default function ProtectedRoute() {
   const location = useLocation();
 
   if (loading) {
-    return <Loader text="Vérification de la session..." />;
+    return <div style={{ padding: 24 }}>Chargement...</div>;
   }
 
   if (!user) {
