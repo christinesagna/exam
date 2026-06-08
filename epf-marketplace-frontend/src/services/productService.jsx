@@ -33,9 +33,9 @@ function normalizeListResponse(raw) {
 
   return {
     items,
-    currentPage: root?.current_page || pagination?.current_page || 1,
-    lastPage: root?.last_page || pagination?.last_page || 1,
-    total: root?.total || pagination?.total || items.length,
+    currentPage: Number(root?.current_page || pagination?.current_page || 1),
+    lastPage: Number(root?.last_page || pagination?.last_page || 1),
+    total: Number(root?.total || pagination?.total || items.length),
   };
 }
 
@@ -69,6 +69,18 @@ export const productService = {
     const data = await getWithFallback(["/categories", "/public/categories"]);
     const root = data?.data ?? data;
     return root?.data || root?.categories || (Array.isArray(root) ? root : []);
+  },
+
+  async getCategoryProducts(categoryId, params = {}) {
+    const data = await getWithFallback([`/categories/${categoryId}`], { params });
+    return normalizeListResponse(data);
+  },
+
+  async getTopSelling(limit = 8) {
+    const data = await getWithFallback(["/products/top-selling"], {
+      params: { limit },
+    });
+    return normalizeListResponse(data);
   },
 
   async getSellerPublic(id) {

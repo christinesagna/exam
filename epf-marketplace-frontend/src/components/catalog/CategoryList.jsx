@@ -9,41 +9,48 @@ export default function CategoryList({ categories = [], activeCategory, onSelect
       }}
     >
       <h3 style={{ marginTop: 0 }}>Catégories</h3>
+
       <button
         type="button"
-        onClick={() => onSelect?.(null)}
+        onClick={() => onSelect?.("")}
         style={{
           marginBottom: "12px",
           background: "transparent",
           border: "none",
-          color: activeCategory ? "#2563eb" : "#111827",
+          color: !activeCategory ? "#2563eb" : "#111827",
           cursor: "pointer",
           textAlign: "left",
           width: "100%",
+          fontWeight: !activeCategory ? 700 : 400,
         }}
       >
         Toutes les catégories
       </button>
-      {categories.map((category) => (
-        <button
-          key={category.id}
-          type="button"
-          onClick={() => onSelect?.(category.id)}
-          style={{
-            display: "block",
-            width: "100%",
-            textAlign: "left",
-            padding: "8px 0",
-            border: "none",
-            background: "transparent",
-            color: activeCategory === category.id ? "#2563eb" : "#374151",
-            fontWeight: activeCategory === category.id ? 600 : 400,
-            cursor: "pointer",
-          }}
-        >
-          {category.name}
-        </button>
-      ))}
+
+      {categories.map((category) => {
+        const isActive = String(activeCategory) === String(category.id);
+
+        return (
+          <button
+            key={category.id}
+            type="button"
+            onClick={() => onSelect?.(category.id)}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "left",
+              padding: "8px 0",
+              border: "none",
+              background: "transparent",
+              color: isActive ? "#2563eb" : "#374151",
+              fontWeight: isActive ? 600 : 400,
+              cursor: "pointer",
+            }}
+          >
+            {category.name}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -40,10 +40,10 @@ export default function ProductGrid({ products = [], loading = false, error = ""
           }}
         >
           <div style={{ minHeight: 140, marginBottom: 12, background: "#f9fafb", borderRadius: 10 }}>
-            {product.image_url ? (
+            {(product.image_url || product.image) ? (
               <img
-                src={product.image_url}
-                alt={product.name}
+                src={product.image_url || product.image}
+                alt={product.title || product.name}
                 style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 10 }}
               />
             ) : (
@@ -52,7 +52,7 @@ export default function ProductGrid({ products = [], loading = false, error = ""
               </div>
             )}
           </div>
-          <h3 style={{ margin: 0, fontSize: 18 }}>{product.name}</h3>
+          <h3 style={{ margin: 0, fontSize: 18 }}>{product.title || product.name}</h3>
           <p style={{ margin: "8px 0", color: "#6b7280", minHeight: 40 }}>{product.description || "Aucune description disponible."}</p>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
             <strong>{product.price ? `${product.price} FCFA` : "Prix non défini"}</strong>
