@@ -61,6 +61,30 @@ export const productService = {
     return normalizeListResponse(data);
   },
 
+  async searchGlobal(params = {}) {
+    // Try a dedicated global search endpoint first
+    try {
+      const { data } = await axiosClient.get("/search/global", { params });
+      // Expecting { products: [], sellers: [], categories: [] } or similar
+      return data?.data || data;
+    } catch (err) {
+      // Fallback: perform separate searches
+      const { q, type = "all", limit = 24 } = params;
+
+      const [productsResp, sellersResp, categoriesResp] = await Promise.all([
+        axiosClient.get("/search", { params: { q, type, limit } }),
+        axiosClient.get("/sellers", { params: { q, limit } }),
+        axiosClient.get("/categories", { params: { q, limit } }),
+      ]);
+
+      const products = productsResp?.data?.data || productsResp?.data || [];
+      const sellers = sellersResp?.data?.data || sellersResp?.data || [];
+      const categories = categoriesResp?.data?.data || categoriesResp?.data || [];
+
+      return { products, sellers, categories };
+    }
+  },
+
   async topSelling(limit = 8) {
     const data = await getWithFallback(
       ["/products/top-selling", "/top-selling/products"],
