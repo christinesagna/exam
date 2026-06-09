@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import SearchBar from "../../components/catalog/SearchBar";
 import ProductGrid from "../../components/catalog/ProductGrid";
 import { productService } from "../../services/productService";
+import semLogo from "../../assets/SEM-Market.png";
 
 export default function HomePage() {
   const navigate = useNavigate();
-
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,7 +16,6 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError("");
-
         const result = await productService.topSelling(8);
         setProducts(result.items);
       } catch {
@@ -25,34 +24,35 @@ export default function HomePage() {
         setLoading(false);
       }
     };
-
     loadFeaturedProducts();
   }, []);
 
   return (
     <section>
-      <div
-        style={{
-          padding: "32px",
-          borderRadius: "16px",
-          background: "linear-gradient(135deg, #eff6ff, #dbeafe)",
-          marginBottom: "24px",
-        }}
-      >
-        <h1 style={{ marginTop: 0 }}>Bienvenue sur EPF Marketplace</h1>
-        <p style={{ color: "#374151" }}>
-          Découvre les produits, recherche rapidement et consulte les vendeurs.
-        </p>
-
-        <SearchBar
-          onSearch={(q) => navigate(`/search?q=${encodeURIComponent(q)}`)}
-          placeholder="Rechercher un produit, une catégorie..."
-        />
+      {/* Hero */}
+      <div className="hero-banner">
+        <div className="hero-content">
+          <img src={semLogo} alt="SEM Market" className="hero-logo" />
+          <h1 className="hero-title">
+            Bienvenue sur <span>SEM Market</span>
+          </h1>
+          <p className="hero-slogan">Achetez, vendez, échangez en toute simplicité.</p>
+          <div className="hero-search">
+            <SearchBar
+              onSearch={(q) => navigate(`/search?q=${encodeURIComponent(q)}`)}
+              placeholder="Rechercher un produit, une catégorie..."
+            />
+          </div>
+          <div className="hero-badges">
+            <span>🛒 Achetez</span>
+            <span>🏷️ Vendez</span>
+            <span>🤝 Échangez</span>
+          </div>
+        </div>
       </div>
 
-      <h2>Top selling</h2>
+      <h2 className="section-title">🔥 Top des ventes</h2>
       <ProductGrid products={products} loading={loading} error={error} />
     </section>
   );
 }
-

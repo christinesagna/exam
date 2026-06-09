@@ -1,14 +1,14 @@
 import { Link } from "react-router-dom";
+import semLogo from "../../assets/SEM-Market.png";
 
 export default function Footer() {
   return (
     <footer className="footer">
       <div className="container footer-grid">
-        <div>
-          <h3 className="footer-title">EPF Marketplace</h3>
-          <p className="footer-text">
-            Votre destination de confiance pour acheter et vendre des produits.
-          </p>
+        <div className="footer-brand-col">
+          <img src={semLogo} alt="SEM Market" className="footer-logo" />
+          <p className="footer-slogan">Achetez, vendez, échangez en toute simplicité.</p>
+          <p className="footer-text">Votre destination de confiance pour acheter et vendre des produits.</p>
         </div>
 
         <div>
@@ -22,11 +22,19 @@ export default function Footer() {
         </div>
 
         <div>
-          <h4 className="footer-subtitle">Socle technique</h4>
+          <h4 className="footer-subtitle">Contact</h4>
           <p className="footer-text">
-            
+            Une plateforme moderne pour connecter acheteurs et vendeurs.
           </p>
+          <div className="footer-badges">
+            <span>🛒 Achetez</span>
+            <span>🏷️ Vendez</span>
+            <span>🤝 Échangez</span>
+          </div>
         </div>
+      </div>
+      <div className="footer-bottom">
+        <p>© {new Date().getFullYear()} SEM Market — Achetez, vendez, échangez en toute simplicité.</p>
       </div>
     </footer>
   );
