@@ -22,7 +22,7 @@ export const authService = {
   },
 
   async updateProfile(formData) {
-    const { data } = await axiosClient.post("/auth/profile", formData, {
+    const { data } = await axiosClient.put("/auth/profile", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

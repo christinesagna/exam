@@ -17,7 +17,7 @@ export default function Sidebar({ isOpen = true, onClose }) {
 
       <aside className={`sidebar ${isOpen ? "sidebar-open" : ""}`}>
         <div className="sidebar-header">
-          <span className="sidebar-brand">Admin EPF</span>
+          <span className="sidebar-brand">Admin </span>
           <button type="button" onClick={onClose} className="icon-button mobile-only">
             ✕
           </button>

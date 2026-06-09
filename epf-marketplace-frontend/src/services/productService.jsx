@@ -21,20 +21,20 @@ async function getWithFallback(urls, config = {}) {
 }
 
 function normalizeListResponse(raw) {
-  const root = raw?.data ?? raw;
+  const root = raw?.pagination || raw?.meta ? raw : raw?.data ?? raw;
 
   const items =
     root?.data ||
     root?.products ||
     root?.items ||
     root?.results ||
-    [];
+    (Array.isArray(root) ? root : []);
 
   return {
     items: Array.isArray(items) ? items : [],
-    currentPage: root?.current_page || root?.meta?.current_page || 1,
-    lastPage: root?.last_page || root?.meta?.last_page || 1,
-    total: root?.total || root?.meta?.total || (Array.isArray(items) ? items.length : 0),
+    currentPage: root?.pagination?.current_page || root?.current_page || root?.meta?.current_page || 1,
+    lastPage: root?.pagination?.last_page || root?.last_page || root?.meta?.last_page || 1,
+    total: root?.pagination?.total || root?.total || root?.meta?.total || (Array.isArray(items) ? items.length : 0),
   };
 }
 
@@ -62,27 +62,8 @@ export const productService = {
   },
 
   async searchGlobal(params = {}) {
-    // Try a dedicated global search endpoint first
-    try {
-      const { data } = await axiosClient.get("/search/global", { params });
-      // Expecting { products: [], sellers: [], categories: [] } or similar
-      return data?.data || data;
-    } catch (err) {
-      // Fallback: perform separate searches
-      const { q, type = "all", limit = 24 } = params;
-
-      const [productsResp, sellersResp, categoriesResp] = await Promise.all([
-        axiosClient.get("/search", { params: { q, type, limit } }),
-        axiosClient.get("/sellers", { params: { q, limit } }),
-        axiosClient.get("/categories", { params: { q, limit } }),
-      ]);
-
-      const products = productsResp?.data?.data || productsResp?.data || [];
-      const sellers = sellersResp?.data?.data || sellersResp?.data || [];
-      const categories = categoriesResp?.data?.data || categoriesResp?.data || [];
-
-      return { products, sellers, categories };
-    }
+    const { data } = await axiosClient.get("/search", { params });
+    return data;
   },
 
   async topSelling(limit = 8) {
