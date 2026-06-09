@@ -10,16 +10,18 @@ export default function ProductDetailsPage() {
   const { id } = useParams();
 
   const [product, setProduct] = useState(null);
-  const [seller, setSeller] = useState(null);
   const [reviewsData, setReviewsData] = useState({
     items: [],
     currentPage: 1,
     lastPage: 1,
-    total: 0,
   });
-  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewsPage, setReviewsPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setReviewsPage(1);
+  }, [id]);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -27,15 +29,13 @@ export default function ProductDetailsPage() {
         setLoading(true);
         setError("");
 
-        const loadedProduct = await productService.getById(id);
-        setProduct(loadedProduct);
+        const [productData, productReviews] = await Promise.all([
+          productService.getById(id),
+          productService.getProductReviews(id, { page: reviewsPage }),
+        ]);
 
-        if (loadedProduct?.seller?.id) {
-          const loadedSeller = await productService.getSellerPublic(loadedProduct.seller.id);
-          setSeller(loadedSeller);
-        } else {
-          setSeller(null);
-        }
+        setProduct(productData);
+        setReviewsData(productReviews);
       } catch {
         setError("Impossible de charger ce produit.");
       } finally {
@@ -44,52 +44,37 @@ export default function ProductDetailsPage() {
     };
 
     loadProduct();
-  }, [id]);
-
-  useEffect(() => {
-    const loadReviews = async () => {
-      try {
-        const data = await productService.getReviews(id, { page: reviewPage, per_page: 5 });
-        setReviewsData(data);
-      } catch {
-        setReviewsData({ items: [], currentPage: 1, lastPage: 1, total: 0 });
-      }
-    };
-
-    loadReviews();
-  }, [id, reviewPage]);
+  }, [id, reviewsPage]);
 
   if (loading) return <Loader />;
   if (error) return <ErrorMessage message={error} />;
   if (!product) return <ErrorMessage message="Produit introuvable." />;
 
   const images = Array.isArray(product.images) ? product.images : [];
-  const firstImage = product.thumbnail || product.image || images?.[0]?.url || images?.[0] || null;
-  const price = Number(product.effective_price ?? product.price ?? 0).toFixed(2);
+  const firstImage =
+    product.thumbnail || product.image || images?.[0]?.url || images?.[0] || null;
 
   return (
-    <section style={{ display: "grid", gap: 24 }}>
-      <Link to="/products" style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>
+    <section>
+      <Link to="/products" style={{ color: "#2563eb" }}>
         ← Retour au catalogue
       </Link>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(280px, 480px) 1fr",
-          gap: 24,
-          background: "#fff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 18,
-          padding: 24,
+          gridTemplateColumns: "1fr 1fr",
+          gap: "24px",
+          marginTop: "20px",
         }}
       >
         <div
           style={{
-            minHeight: 340,
-            background: "#f8fafc",
-            borderRadius: 16,
+            border: "1px solid #e5e7eb",
+            borderRadius: "16px",
             overflow: "hidden",
+            background: "#fff",
+            minHeight: "380px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -107,46 +92,46 @@ export default function ProductDetailsPage() {
         </div>
 
         <div>
-          <h1 style={{ marginTop: 0 }}>{product.title || product.name}</h1>
-          <p style={{ fontSize: 28, fontWeight: 800, margin: "6px 0 18px" }}>{price} FCFA</p>
-          <p style={{ color: "#475569", lineHeight: 1.7 }}>
+          <h1>{product.title || product.name}</h1>
+
+          <p style={{ fontSize: "20px", fontWeight: 700 }}>
+            {Number(product.effective_price ?? product.price ?? 0).toFixed(2)} FCFA
+          </p>
+
+          <p style={{ color: "#4b5563" }}>
             {product.description || "Aucune description disponible."}
           </p>
 
           {product.category?.name && (
-            <p><strong>Catégorie :</strong> {product.category.name}</p>
+            <p>
+              <strong>Catégorie :</strong> {product.category.name}
+            </p>
           )}
-          <p><strong>Stock :</strong> {product.stock ?? "N/A"}</p>
 
-          {seller && (
-            <div style={{ marginTop: 24, padding: 16, background: "#f8fafc", borderRadius: 14 }}>
-              <h2 style={{ marginTop: 0, fontSize: 18 }}>Vendeur</h2>
-              <p style={{ marginBottom: 8 }}>
-                <strong>{seller.shop_name || seller.name || "Vendeur"}</strong>
-              </p>
-              <p style={{ marginTop: 0, color: "#64748b" }}>
-                {seller.bio || seller.description || "Profil public du vendeur."}
-              </p>
-              <Link to={`/sellers/${seller.id || product.seller?.id}`} style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>
-                Voir le profil vendeur
+          {product.seller?.id && (
+            <p>
+              <strong>Vendeur :</strong>{" "}
+              <Link to={`/sellers/${product.seller.id}`}>
+                {product.seller.name || "Voir le vendeur"}
               </Link>
-            </div>
+            </p>
           )}
+
+          <p>
+            <strong>Stock :</strong> {product.stock ?? "N/A"}
+          </p>
         </div>
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 18, padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16 }}>
-          <h2 style={{ margin: 0 }}>Avis produit</h2>
-          <span style={{ color: "#64748b" }}>{reviewsData.total} avis</span>
-        </div>
+      <div style={{ marginTop: "32px" }}>
+        <h2>Avis produit</h2>
 
         <ReviewList reviews={reviewsData.items} />
 
         <Pagination
           currentPage={reviewsData.currentPage}
           lastPage={reviewsData.lastPage}
-          onPageChange={setReviewPage}
+          onPageChange={setReviewsPage}
         />
       </div>
     </section>
