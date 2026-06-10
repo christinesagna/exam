@@ -1,62 +1,141 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Loader from "../../components/common/Loader";
-import ErrorMessage from "../../components/ui/ErrorMessage";
+import ErrorMessage from "../../components/common/ErrorMessage";
 import ReviewList from "../../components/catalog/ReviewList";
-import Pagination from "../../components/catalog/Pagination";
 import { productService } from "../../services/productService";
+import { favoriteService } from "../../services/favoriteService";
+import { useAuth } from "../../hooks/useAuth";
+import { useCart } from "../../hooks/useCart";
+import { useToast } from "../../hooks/useToast";
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const { addToCart } = useCart();
 
   const [product, setProduct] = useState(null);
-  const [reviewsData, setReviewsData] = useState({
-    items: [],
-    currentPage: 1,
-    lastPage: 1,
-  });
-  const [reviewsPage, setReviewsPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [cartLoading, setCartLoading] = useState(false);
+
+  const isBuyer = user?.role === "buyer";
 
   useEffect(() => {
-    setReviewsPage(1);
-  }, [id]);
+    let ignore = false;
 
-  useEffect(() => {
     const loadProduct = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const [productData, productReviews] = await Promise.all([
-          productService.getById(id),
-          productService.getProductReviews(id, { page: reviewsPage }),
-        ]);
+        const data = await productService.getById(id);
 
-        setProduct(productData);
-        setReviewsData(productReviews);
+        if (!ignore) {
+          setProduct(data);
+        }
+
+        if (isAuthenticated && isBuyer) {
+          try {
+            const fav = await favoriteService.isFavorite(id);
+            const value = fav?.is_favorite ?? fav?.data?.is_favorite ?? false;
+            if (!ignore) {
+              setIsFavorite(Boolean(value));
+            }
+          } catch {
+            if (!ignore) setIsFavorite(false);
+          }
+        }
       } catch {
-        setError("Impossible de charger ce produit.");
+        if (!ignore) setError("Impossible de charger ce produit.");
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     };
 
     loadProduct();
-  }, [id, reviewsPage]);
+
+    return () => {
+      ignore = true;
+    };
+  }, [id, isAuthenticated, isBuyer]);
+
+  const images = useMemo(() => {
+    if (!product) return [];
+    if (Array.isArray(product.images) && product.images.length) return product.images;
+    const fallback = product.thumbnail || product.image;
+    return fallback ? [fallback] : [];
+  }, [product]);
+
+  const firstImage =
+    typeof images[0] === "string" ? images[0] : images?.[0]?.url || null;
+
+  const reviews = product?.reviews || product?.product_reviews || [];
+
+  const handleToggleFavorite = async () => {
+    if (!isAuthenticated) {
+      toast.error("Connecte-toi pour gérer les favoris.");
+      navigate("/login");
+      return;
+    }
+
+    if (!isBuyer) {
+      toast.error("Cette action est réservée au buyer.");
+      return;
+    }
+
+    try {
+      setFavoriteLoading(true);
+
+      if (isFavorite) {
+        await favoriteService.removeFavorite(product.id);
+        setIsFavorite(false);
+        toast.success("Produit retiré des favoris.");
+      } else {
+        await favoriteService.addFavorite(product.id);
+        setIsFavorite(true);
+        toast.success("Produit ajouté aux favoris.");
+      }
+    } catch {
+      toast.error("Impossible de mettre à jour les favoris.");
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      toast.error("Connecte-toi pour ajouter au panier.");
+      navigate("/login");
+      return;
+    }
+
+    if (!isBuyer) {
+      toast.error("Le panier est réservé au buyer.");
+      return;
+    }
+
+    try {
+      setCartLoading(true);
+      await addToCart(product.id, 1);
+    } catch {
+      toast.error("Impossible d'ajouter ce produit au panier.");
+    } finally {
+      setCartLoading(false);
+    }
+  };
 
   if (loading) return <Loader />;
   if (error) return <ErrorMessage message={error} />;
   if (!product) return <ErrorMessage message="Produit introuvable." />;
 
-  const images = Array.isArray(product.images) ? product.images : [];
-  const firstImage =
-    product.thumbnail || product.image || images?.[0]?.url || images?.[0] || null;
-
   return (
     <section>
-      <Link to="/products" style={{ color: "#2563eb" }}>
+      <Link to="/products" style={{ color: "#2563eb", textDecoration: "none" }}>
         ← Retour au catalogue
       </Link>
 
@@ -64,17 +143,18 @@ export default function ProductDetailsPage() {
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: "24px",
-          marginTop: "20px",
+          gap: 24,
+          marginTop: 20,
+          alignItems: "start",
         }}
       >
         <div
           style={{
             border: "1px solid #e5e7eb",
-            borderRadius: "16px",
+            borderRadius: 16,
             overflow: "hidden",
             background: "#fff",
-            minHeight: "380px",
+            minHeight: 380,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -91,21 +171,19 @@ export default function ProductDetailsPage() {
           )}
         </div>
 
-        <div>
-          <h1>{product.title || product.name}</h1>
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 24 }}>
+          <h1 style={{ marginTop: 0 }}>{product.title || product.name}</h1>
 
-          <p style={{ fontSize: "20px", fontWeight: 700 }}>
+          <p style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>
             {Number(product.effective_price ?? product.price ?? 0).toFixed(2)} FCFA
           </p>
 
-          <p style={{ color: "#4b5563" }}>
+          <p style={{ color: "#4b5563", lineHeight: 1.7 }}>
             {product.description || "Aucune description disponible."}
           </p>
 
           {product.category?.name && (
-            <p>
-              <strong>Catégorie :</strong> {product.category.name}
-            </p>
+            <p><strong>Catégorie :</strong> {product.category.name}</p>
           )}
 
           {product.seller?.id && (
@@ -117,22 +195,49 @@ export default function ProductDetailsPage() {
             </p>
           )}
 
-          <p>
-            <strong>Stock :</strong> {product.stock ?? "N/A"}
-          </p>
+          <p><strong>Stock :</strong> {product.stock ?? "N/A"}</p>
+
+          <div style={{ display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" }}>
+            <button
+              onClick={handleAddToCart}
+              disabled={cartLoading}
+              style={{
+                border: "none",
+                background: "#2563eb",
+                color: "#fff",
+                padding: "12px 18px",
+                borderRadius: 10,
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              {cartLoading ? "Ajout..." : "Ajouter au panier"}
+            </button>
+
+            {isBuyer && (
+              <button
+                onClick={handleToggleFavorite}
+                disabled={favoriteLoading}
+                style={{
+                  border: "1px solid #d1d5db",
+                  background: "#fff",
+                  color: "#111827",
+                  padding: "12px 18px",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                {isFavorite ? "❤️ Retirer des favoris" : "🤍 Ajouter aux favoris"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div style={{ marginTop: "32px" }}>
-        <h2>Avis produit</h2>
-
-        <ReviewList reviews={reviewsData.items} />
-
-        <Pagination
-          currentPage={reviewsData.currentPage}
-          lastPage={reviewsData.lastPage}
-          onPageChange={setReviewsPage}
-        />
+      <div style={{ marginTop: 32 }}>
+        <h2>Avis</h2>
+        <ReviewList reviews={reviews} />
       </div>
     </section>
   );

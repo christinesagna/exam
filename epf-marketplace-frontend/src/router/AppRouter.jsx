@@ -14,18 +14,18 @@ import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ProfilePage from "../pages/auth/ProfilePage";
 
+import ForbiddenPage from "../pages/system/ForbiddenPage";
+import NotFoundPage from "../pages/system/NotFoundPage";
+
 import CartPage from "../pages/buyer/CartPage";
+import CheckoutPage from "../pages/buyer/CheckoutPage";
 import OrdersPage from "../pages/buyer/OrdersPage";
+import OrderDetailPage from "../pages/buyer/OrderDetailPage";
+import FavoritesPage from "../pages/buyer/FavoritesPage";
 
 import SellerDashboardPage from "../pages/seller/SellerDashboardPage";
 import MyProductsPage from "../pages/seller/MyProductsPage";
-
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
-import ProductsAdminPage from "../pages/admin/ProductsAdminPage";
-import UsersPage from "../pages/admin/UsersPage";
-
-import ForbiddenPage from "../pages/system/ForbiddenPage";
-import NotFoundPage from "../pages/system/NotFoundPage";
 
 export default function AppRouter() {
   return (
@@ -38,7 +38,6 @@ export default function AppRouter() {
         <Route path="/search" element={<SearchResultsPage />} />
         <Route path="/sellers/:id" element={<SellerPublicPage />} />
 
-        {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forbidden" element={<ForbiddenPage />} />
@@ -49,8 +48,11 @@ export default function AppRouter() {
 
           {/* Buyer */}
           <Route element={<RoleGuard allowedRoles={["buyer"]} />}>
+            <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/orders/:id" element={<OrderDetailPage />} />
           </Route>
 
           {/* Seller */}
@@ -62,13 +64,9 @@ export default function AppRouter() {
           {/* Admin */}
           <Route element={<RoleGuard allowedRoles={["admin"]} />}>
             <Route path="/admin" element={<AdminDashboardPage />} />
-            <Route path="/admin/products" element={<ProductsAdminPage />} />
-            <Route path="/admin/orders" element={<OrdersPage />} />
-            <Route path="/admin/users" element={<UsersPage />} />
           </Route>
         </Route>
 
-        {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

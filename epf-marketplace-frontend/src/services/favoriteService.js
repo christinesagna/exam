@@ -1,13 +1,25 @@
-import apiClient from "./apiClient";
- 
-// GET /api/favorites
-export const getFavorites = () =>
-  apiClient.get("/favorites");
- 
-// POST /api/favorites/add
-export const addFavorite = (productId) =>
-  apiClient.post("/favorites/add", { product_id: productId });
- 
-// DELETE /api/favorites/:productId
-export const removeFavorite = (productId) =>
-  apiClient.delete(`/favorites/${productId}`);
+import axiosClient from "./api/axiosClient";
+
+export const favoriteService = {
+  async listFavorites() {
+    const { data } = await axiosClient.get("/favorites");
+    return data;
+  },
+
+  async addFavorite(productId) {
+    const { data } = await axiosClient.post("/favorites/add", {
+      product_id: productId,
+    });
+    return data;
+  },
+
+  async removeFavorite(productId) {
+    const { data } = await axiosClient.delete(`/favorites/${productId}`);
+    return data;
+  },
+
+  async isFavorite(productId) {
+    const { data } = await axiosClient.get(`/products/${productId}/is-favorite`);
+    return data;
+  },
+};

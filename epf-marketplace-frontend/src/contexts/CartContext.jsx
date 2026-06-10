@@ -1,208 +1,225 @@
-import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  addToCart,
-  clearCartService,
-  getCart,
-  removeCartItem,
-  updateCartItem,
-} from '../services/cart.service';
-import { createOrder } from '../services/orders.service';
-import { getAuthToken } from '../services/http';
+import { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import { cartService } from "../services/cartService";
+import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../hooks/useToast";
 
-const CART_STORAGE_KEY = 'epf-marketplace-cart';
+export const CartContext = createContext(null);
 
-const initialCart = {
-  id: 'current-cart',
+const CART_STORAGE_KEY = "epf_marketplace_cart_snapshot";
+
+const EMPTY_CART = {
+  id: null,
   items: [],
   subtotal: 0,
   total: 0,
   itemCount: 0,
-  raw: null,
 };
 
-export const CartContext = createContext(null);
+function saveCartSnapshot(cart) {
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+}
 
-function readCartFromStorage() {
+function loadCartSnapshot() {
   try {
-    const stored = localStorage.getItem(CART_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : initialCart;
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : EMPTY_CART;
   } catch {
-    return initialCart;
+    return EMPTY_CART;
   }
 }
 
+function normalizeCartItem(item) {
+  const product = item?.product || item?.product_data || item?.item || null;
+  const quantity = Number(item?.quantity ?? item?.qty ?? 1);
+  const unitPrice = Number(
+    item?.unit_price ??
+      item?.price ??
+      product?.effective_price ??
+      product?.price ??
+      0
+  );
+
+  return {
+    id: item?.id ?? item?.cart_item_id ?? product?.id,
+    product_id: item?.product_id ?? product?.id,
+    quantity,
+    unitPrice,
+    lineTotal: Number(item?.line_total ?? unitPrice * quantity),
+    product,
+  };
+}
+
+function normalizeCartResponse(payload) {
+  const root = payload?.data ?? payload ?? {};
+  const cart = root?.cart ?? root?.data ?? root;
+
+  const rawItems =
+    cart?.items ??
+    cart?.cart_items ??
+    root?.items ??
+    root?.cart_items ??
+    [];
+
+  const items = Array.isArray(rawItems) ? rawItems.map(normalizeCartItem) : [];
+
+  const subtotal =
+    Number(cart?.subtotal ?? root?.subtotal) ||
+    items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+
+  const total =
+    Number(cart?.total ?? root?.total) ||
+    Number(cart?.grand_total ?? root?.grand_total) ||
+    subtotal;
+
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  return {
+    id: cart?.id ?? root?.id ?? null,
+    items,
+    subtotal,
+    total,
+    itemCount,
+  };
+}
+
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState(readCartFromStorage);
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [couponCode, setCouponCode] = useState('');
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
+  const toast = useToast();
 
-  useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-  }, [cart]);
+  const [cart, setCart] = useState(loadCartSnapshot());
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
-  const refreshCart = useCallback(async () => {
-    if (!getAuthToken()) {
-      setCart(readCartFromStorage());
-      return initialCart;
+  const isBuyer = user?.role === "buyer";
+
+  const applyCart = useCallback((nextCart) => {
+    setCart(nextCart);
+    saveCartSnapshot(nextCart);
+  }, []);
+
+  const resetCartLocal = useCallback(() => {
+    applyCart(EMPTY_CART);
+  }, [applyCart]);
+
+  const loadCart = useCallback(async () => {
+    if (!isAuthenticated || !isBuyer) {
+      resetCartLocal();
+      setLoading(false);
+      return EMPTY_CART;
     }
 
-    setLoading(true);
-    setError('');
     try {
-      const freshCart = await getCart();
-      setCart(freshCart);
-      return freshCart;
-    } catch (err) {
-      setError(err.message || 'Impossible de charger le panier.');
-      throw err;
+      setSyncing(true);
+      const data = await cartService.getCart();
+      const normalized = normalizeCartResponse(data);
+      applyCart(normalized);
+      return normalized;
+    } catch (error) {
+      resetCartLocal();
+      throw error;
     } finally {
       setLoading(false);
+      setSyncing(false);
     }
-  }, []);
+  }, [applyCart, isAuthenticated, isBuyer, resetCartLocal]);
 
   useEffect(() => {
-    if (getAuthToken()) {
-      refreshCart().catch(() => {});
-    }
-  }, [refreshCart]);
+    if (authLoading) return;
+    loadCart().catch(() => {});
+  }, [authLoading, loadCart]);
 
-  useEffect(() => {
-    function handleUnauthorized() {
-      setCart(initialCart);
-      setCouponCode('');
-    }
+  const addToCart = useCallback(
+    async (productId, quantity = 1) => {
+      if (!isAuthenticated || !isBuyer) {
+        toast.error("Connecte-toi avec un compte buyer pour utiliser le panier.");
+        throw new Error("Unauthorized cart access");
+      }
 
-    window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
-  }, []);
+      try {
+        setSyncing(true);
+        await cartService.addToCart({
+          product_id: productId,
+          quantity,
+        });
+        const nextCart = await loadCart();
+        toast.success("Produit ajouté au panier.");
+        return nextCart;
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [isAuthenticated, isBuyer, loadCart, toast]
+  );
 
-  const addItem = useCallback(async (productId, quantity = 1) => {
-    setSubmitting(true);
-    setError('');
-    try {
-      const nextCart = await addToCart({ productId, quantity });
-      setCart(nextCart);
-      return nextCart;
-    } catch (err) {
-      setError(err.message || 'Ajout au panier impossible.');
-      throw err;
-    } finally {
-      setSubmitting(false);
-    }
-  }, []);
+  const updateQuantity = useCallback(
+    async (cartItemId, quantity) => {
+      if (quantity <= 0) {
+        return removeItem(cartItemId);
+      }
 
-  const updateItemQuantity = useCallback(async (cartItemId, quantity) => {
-    setSubmitting(true);
-    setError('');
-    try {
-      const nextCart = await updateCartItem(cartItemId, quantity);
-      setCart(nextCart);
-      return nextCart;
-    } catch (err) {
-      setError(err.message || 'Mise à jour impossible.');
-      throw err;
-    } finally {
-      setSubmitting(false);
-    }
-  }, []);
+      try {
+        setSyncing(true);
+        await cartService.updateCartItem(cartItemId, { quantity });
+        const nextCart = await loadCart();
+        toast.success("Quantité mise à jour.");
+        return nextCart;
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [loadCart, toast]
+  );
 
-  const removeItem = useCallback(async (cartItemId) => {
-    setSubmitting(true);
-    setError('');
-    try {
-      const nextCart = await removeCartItem(cartItemId);
-      setCart(nextCart);
-      return nextCart;
-    } catch (err) {
-      setError(err.message || 'Suppression impossible.');
-      throw err;
-    } finally {
-      setSubmitting(false);
-    }
-  }, []);
+  const removeItem = useCallback(
+    async (cartItemId) => {
+      try {
+        setSyncing(true);
+        await cartService.removeCartItem(cartItemId);
+        const nextCart = await loadCart();
+        toast.success("Article retiré du panier.");
+        return nextCart;
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [loadCart, toast]
+  );
 
-  const clearCart = useCallback(async () => {
-    setSubmitting(true);
-    setError('');
-    try {
-      const nextCart = await clearCartService();
-      setCart(nextCart);
-      return nextCart;
-    } catch (err) {
-      setError(err.message || 'Vidage du panier impossible.');
-      throw err;
-    } finally {
-      setSubmitting(false);
-    }
-  }, []);
+  const clearCart = useCallback(
+    async ({ silent = false } = {}) => {
+      try {
+        setSyncing(true);
+        await cartService.clearCart();
+      } catch {
+        // On continue quand même pour vider le front
+      } finally {
+        resetCartLocal();
+        setSyncing(false);
+        if (!silent) {
+          toast.success("Panier vidé.");
+        }
+      }
+    },
+    [resetCartLocal, toast]
+  );
 
-  const placeOrder = useCallback(async ({ shippingAddress, billingAddress, note }) => {
-    setSubmitting(true);
-    setError('');
-
-    const payload = {
-      shipping_address: shippingAddress,
-      billing_address: billingAddress,
-      note,
-    };
-
-    if (couponCode.trim()) {
-      payload.coupon_code = couponCode.trim();
-    }
-
-    try {
-      const order = await createOrder(payload);
-      setCart(initialCart);
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(initialCart));
-      return order;
-    } catch (err) {
-      setError(err.message || 'Création de commande impossible.');
-      throw err;
-    } finally {
-      setSubmitting(false);
-    }
-  }, [couponCode]);
-
-  const totals = useMemo(() => ({
-    subtotal: Number(cart.subtotal || 0),
-    total: Number(cart.total || cart.subtotal || 0),
-    itemCount: Number(cart.itemCount || 0),
-  }), [cart]);
-
-  const value = useMemo(() => ({
-    cart,
-    loading,
-    submitting,
-    error,
-    couponCode,
-    setCouponCode,
-    subtotal: totals.subtotal,
-    total: totals.total,
-    itemCount: totals.itemCount,
-    refreshCart,
-    addItem,
-    updateItemQuantity,
-    removeItem,
-    clearCart,
-    placeOrder,
-  }), [
-    addItem,
-    cart,
-    clearCart,
-    couponCode,
-    error,
-    loading,
-    placeOrder,
-    refreshCart,
-    removeItem,
-    submitting,
-    totals.itemCount,
-    totals.subtotal,
-    totals.total,
-    updateItemQuantity,
-  ]);
+  const value = useMemo(
+    () => ({
+      cart,
+      loading,
+      syncing,
+      itemCount: cart.itemCount,
+      subtotal: cart.subtotal,
+      total: cart.total,
+      loadCart,
+      addToCart,
+      updateQuantity,
+      removeItem,
+      clearCart,
+      resetCartLocal,
+    }),
+    [cart, loading, syncing, loadCart, addToCart, updateQuantity, removeItem, clearCart, resetCartLocal]
+  );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

@@ -1,85 +1,77 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { getFavorites, removeFavorite } from "../../services/favoriteService";
-import ProductCard from "../../components/ProductCard";
- 
+import { useEffect, useMemo, useState } from "react";
+import ProductCard from "../../components/catalog/ProductCard";
+import Loader from "../../components/common/Loader";
+import ErrorMessage from "../../components/common/ErrorMessage";
+import EmptyState from "../../components/common/EmptyState";
+import { favoriteService } from "../../services/favoriteService";
+
+function normalizeFavorites(payload) {
+  const root = payload?.data ?? payload ?? {};
+  const raw =
+    root?.favorites ??
+    root?.items ??
+    root?.data ??
+    (Array.isArray(root) ? root : []);
+
+  return Array.isArray(raw)
+    ? raw.map((item) => item?.product || item)
+    : [];
+}
+
 export default function FavoritesPage() {
-  const navigate = useNavigate();
   const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(null);
- 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const hasFavorites = useMemo(() => favorites.length > 0, [favorites]);
+
   useEffect(() => {
-    setLoading(true);
-    getFavorites()
-      .then((res) => setFavorites(res.data.data ?? res.data))
-      .catch(() => setError("Impossible de charger tes favoris."))
-      .finally(() => setLoading(false));
+    const loadFavorites = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await favoriteService.listFavorites();
+        setFavorites(normalizeFavorites(data));
+      } catch {
+        setError("Impossible de charger les favoris.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFavorites();
   }, []);
- 
-  const handleRemove = async (productId) => {
-    try {
-      await removeFavorite(productId);
-      setFavorites((prev) => prev.filter((f) => f.id !== productId));
-    } catch {
-      alert("Erreur lors de la suppression.");
-    }
-  };
- 
+
   return (
-    <div style={{ padding: "24px 32px", maxWidth: 1100, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>
-        ❤️ Mes favoris ({favorites.length})
-      </h1>
- 
-      {/* Chargement */}
-      {loading && <p style={{ color: "#6b7280" }}>Chargement…</p>}
- 
-      {/* Erreur */}
-      {error && (
-        <div style={{ padding: 16, background: "#fef2f2", borderRadius: 8, color: "#b91c1c" }}>
-          {error}
-        </div>
+    <section>
+      <h1 style={{ marginTop: 0 }}>Mes favoris</h1>
+      <p style={{ color: "#6b7280", marginBottom: 24 }}>
+        Retrouve rapidement les produits que tu as enregistrés.
+      </p>
+
+      {loading && <Loader />}
+      {error && <ErrorMessage message={error} />}
+
+      {!loading && !error && !hasFavorites && (
+        <EmptyState
+          title="Aucun favori"
+          message="Ajoute des produits aux favoris depuis le catalogue ou la fiche produit."
+        />
       )}
- 
-      {/* État vide */}
-      {!loading && !error && favorites.length === 0 && (
-        <div style={{ textAlign: "center", padding: "60px 0", color: "#6b7280" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🤍</div>
-          <p style={{ fontSize: 16, fontWeight: 500 }}>Aucun favori pour le moment</p>
-          <p style={{ fontSize: 13, marginBottom: 20 }}>
-            Ajoute des produits à tes favoris depuis le catalogue.
-          </p>
-          <button
-            onClick={() => navigate("/catalogue")}
-            style={{
-              padding: "10px 24px", background: "#2563eb", color: "#fff",
-              border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600,
-            }}
-          >
-            Voir le catalogue
-          </button>
-        </div>
-      )}
- 
-      {/* Grille des favoris */}
-      {!loading && favorites.length > 0 && (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-          gap: 20,
-        }}>
+
+      {!loading && !error && hasFavorites && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+            gap: 16,
+          }}
+        >
           {favorites.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              isFavorite={true}
-              onToggleFavorite={handleRemove}
-              onClick={(p) => navigate(`/products/${p.id}`)}
-            />
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
