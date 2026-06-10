@@ -1,112 +1,167 @@
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import StatusBadge from '../../components/common/StatusBadge';
-import OrderLineTable from '../../components/orders/OrderLineTable';
-import { cancelOrder, getOrderById } from '../../services/orders.service';
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import Loader from "../../components/common/Loader";
+import ErrorMessage from "../../components/common/ErrorMessage";
+import { orderService } from "../../services/orderService";
+import { useToast } from "../../hooks/useToast";
 
-function formatPrice(value) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
+function normalizeOrder(payload) {
+  const root = payload?.data ?? payload ?? {};
+  return root?.order ?? root?.data ?? root;
 }
 
 export default function OrderDetailPage() {
-  const { orderId } = useParams();
+  const { id } = useParams();
+  const toast = useToast();
+
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+
+  const status = useMemo(() => order?.status || "unknown", [order]);
+
+  const loadOrder = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await orderService.getOrderById(id);
+      setOrder(normalizeOrder(data));
+    } catch {
+      setError("Impossible de charger le détail de la commande.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let ignore = false;
-
-    async function loadOrder() {
-      setLoading(true);
-      setError('');
-      try {
-        const data = await getOrderById(orderId);
-        if (!ignore) setOrder(data);
-      } catch (err) {
-        if (!ignore) setError(err.message || 'Impossible de charger la commande.');
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    }
-
     loadOrder();
-    return () => {
-      ignore = true;
-    };
-  }, [orderId]);
+  }, [id]);
 
-  async function handleCancel() {
-    if (!order) return;
-    setActionLoading(true);
-    setError('');
+  const handleCancel = async () => {
     try {
-      const updated = await cancelOrder(order.id);
-      setOrder(updated);
-    } catch (err) {
-      setError(err.message || 'Annulation impossible.');
+      setCancelling(true);
+      await orderService.cancelOrder(id);
+      toast.success("Commande annulée.");
+      await loadOrder();
+    } catch {
+      toast.error("Impossible d'annuler cette commande.");
     } finally {
-      setActionLoading(false);
+      setCancelling(false);
     }
-  }
+  };
 
-  if (loading) {
-    return <LoadingSpinner label="Chargement du détail..." />;
-  }
+  if (loading) return <Loader />;
+  if (error) return <ErrorMessage message={error} />;
+  if (!order) return <ErrorMessage message="Commande introuvable." />;
 
-  if (!order) {
-    return (
-      <section className="page-section narrow-page">
-        <div className="alert alert-error">Commande introuvable.</div>
-        <Link to="/buyer/orders" className="btn btn-secondary">Retour à mes commandes</Link>
-      </section>
-    );
-  }
+  const items = order.items || order.order_items || [];
+  const total = Number(order.total ?? order.amount ?? 0);
 
   return (
-    <section className="page-section narrow-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Sprint 3 · Buyer</p>
-          <h1>Détail de commande</h1>
-          <p className="muted">Référence : {order.reference}</p>
+    <section>
+      <Link to="/orders" style={{ color: "#2563eb", textDecoration: "none" }}>
+        ← Retour à mes commandes
+      </Link>
+
+      <div
+        style={{
+          marginTop: 20,
+          background: "#fff",
+          border: "1px solid #e5e7eb",
+          borderRadius: 16,
+          padding: 24,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div>
+            <h1 style={{ marginTop: 0, marginBottom: 8 }}>Commande #{order.id}</h1>
+            <p style={{ margin: "4px 0", color: "#4b5563" }}>
+              Statut : <strong>{status}</strong>
+            </p>
+            <p style={{ margin: "4px 0", color: "#4b5563" }}>
+              Date :{" "}
+              {order.created_at
+                ? new Date(order.created_at).toLocaleString("fr-FR")
+                : "—"}
+            </p>
+          </div>
+
+          {status === "pending" && (
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              style={{
+                border: "none",
+                background: "#dc2626",
+                color: "#fff",
+                padding: "12px 16px",
+                borderRadius: 10,
+                fontWeight: 700,
+                cursor: "pointer",
+                height: "fit-content",
+              }}
+            >
+              {cancelling ? "Annulation..." : "Annuler la commande"}
+            </button>
+          )}
         </div>
-        <StatusBadge status={order.status} />
-      </div>
 
-      {error ? <div className="alert alert-error">{error}</div> : null}
+        <div style={{ marginTop: 24 }}>
+          <h2>Articles</h2>
 
-      <div className="card detail-grid">
-        <div>
-          <h3>Informations</h3>
-          <p><strong>Adresse de livraison :</strong><br />{order.shippingAddress || 'Non fournie'}</p>
-          <p><strong>Adresse de facturation :</strong><br />{order.billingAddress || 'Non fournie'}</p>
-          {order.note ? <p><strong>Note :</strong><br />{order.note}</p> : null}
-        </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {items.map((item, index) => {
+              const product = item.product || {};
+              const quantity = Number(item.quantity ?? 1);
+              const unitPrice = Number(
+                item.unit_price ?? item.price ?? product.price ?? 0
+              );
+              const lineTotal = Number(item.total ?? unitPrice * quantity);
 
-        <div>
-          <h3>Montant</h3>
-          <p className="big-price">{formatPrice(order.total)}</p>
-          <div className="stack-actions">
-            {order.status === 'pending' ? (
-              <button type="button" className="btn btn-danger" disabled={actionLoading} onClick={handleCancel}>
-                {actionLoading ? 'Annulation...' : 'Annuler la commande'}
-              </button>
-            ) : null}
-            <Link to="/buyer/orders" className="btn btn-secondary">Retour à mes commandes</Link>
+              return (
+                <div
+                  key={item.id || index}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    padding: 14,
+                    border: "1px solid #f1f5f9",
+                    borderRadius: 12,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700 }}>
+                      {product.title || product.name || `Produit #${item.product_id}`}
+                    </div>
+                    <div style={{ color: "#6b7280", fontSize: 14 }}>
+                      {quantity} × {unitPrice.toFixed(2)} FCFA
+                    </div>
+                  </div>
+
+                  <strong>{lineTotal.toFixed(2)} FCFA</strong>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
 
-      <div className="card">
-        <h3>Lignes de commande</h3>
-        <OrderLineTable lines={order.lines} />
+        <div
+          style={{
+            marginTop: 24,
+            paddingTop: 16,
+            borderTop: "1px solid #e5e7eb",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: 18, fontWeight: 700 }}>Total</span>
+          <span style={{ fontSize: 20, fontWeight: 800 }}>
+            {total.toFixed(2)} FCFA
+          </span>
+        </div>
       </div>
     </section>
   );
