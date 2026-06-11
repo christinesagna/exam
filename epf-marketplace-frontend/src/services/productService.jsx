@@ -206,8 +206,12 @@ export const getSellerReviews = async (userId, params = {}) => {
 };
 
 export const getMyProducts = async (params = {}) => {
-  const { data } = await axiosClient.get("/products/my-products", { params });
-  return data;
+  const data = await getWithFallback(
+    ["/products/my-products", "/seller/products", "/sellers/me/products", "/users/me/products", "/users/0/products"],
+    { params }
+  );
+
+  return normalizeListResponse(data);
 };
 
 export const createProduct = async (formData) => {

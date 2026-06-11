@@ -1,156 +1,187 @@
 import { useEffect, useMemo, useState } from "react";
-import ErrorMessage from "../../components/common/ErrorMessage";
-import Loader from "../../components/common/Loader";
-import SellerMetricCard from "../../components/seller/SellerMetricCard";
-import SellerWorkspaceTabs from "../../components/seller/SellerWorkspaceTabs";
-import { sellerService } from "../../services/sellerService";
+import toast from "react-hot-toast";
 
-const periods = [
-  { value: "week", label: "7 jours" },
-  { value: "month", label: "30 jours" },
-  { value: "year", label: "12 mois" },
-];
+import SellerShell from "../../components/seller/SellerShell";
+import SellerStatsCards from "../../components/seller/SellerStatsCards";
+import sellerService from "../../services/sellerService";
 
-function currency(value) {
-  const numeric = Number.parseFloat(value || 0);
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(Number.isNaN(numeric) ? 0 : numeric);
-}
+const money = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "XOF",
+  maximumFractionDigits: 0,
+});
+
+const extractLabel = (entry) =>
+  entry.month ??
+  entry.label ??
+  entry.name ??
+  entry.period ??
+  "—";
+
+const extractValue = (entry) =>
+  Number(
+    entry.total ??
+      entry.amount ??
+      entry.value ??
+      entry.sales ??
+      0
+  );
 
 export default function SellerStatisticsPage() {
-  const [period, setPeriod] = useState("month");
-  const [stats, setStats] = useState(null);
+  const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    let ignore = false;
-
-    async function loadStats() {
+    const loadStatistics = async () => {
       try {
         setLoading(true);
-        setError("");
-        const data = await sellerService.getStatistics(period);
-        if (!ignore) {
-          setStats(data);
-        }
-      } catch (err) {
-        if (!ignore) {
-          setError(err?.response?.data?.message || "Impossible de charger les statistiques vendeur.");
-        }
+        const data = await sellerService.getStatistics();
+        setStatistics(data);
+      } catch (error) {
+        toast.error("Impossible de charger les statistiques");
       } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
-    }
-
-    loadStats();
-    return () => {
-      ignore = true;
     };
-  }, [period]);
+
+    loadStatistics();
+  }, []);
 
   const cards = useMemo(() => {
-    if (!stats) return [];
+    if (!statistics) return [];
+
+    const topProductsCount = statistics.topProducts?.length ?? 0;
+    const statusCount = Object.keys(statistics.ordersByStatus ?? {}).length;
+    const monthlyPoints = statistics.salesByMonth?.length ?? 0;
 
     return [
-      {
-        title: "Vues produits",
-        value: stats.total_views ?? 0,
-        hint: "Somme des vues sur vos produits",
-        accent: "#2563eb",
-      },
-      {
-        title: "Clics estimés",
-        value: stats.total_clicks ?? 0,
-        hint: "10% des vues selon le backend",
-        accent: "#0f766e",
-      },
-      {
-        title: "Taux de conversion",
-        value: `${stats.conversion_rate ?? 0}%`,
-        hint: "Commandes / vues sur la période",
-        accent: "#d97706",
-      },
-      {
-        title: "Panier moyen",
-        value: currency(stats.average_order_value),
-        hint: "Montant moyen par commande",
-        accent: "#7c3aed",
-      },
-      {
-        title: "Satisfaction client",
-        value: stats.customer_satisfaction ?? 0,
-        hint: "Note moyenne du vendeur",
-        accent: "#db2777",
-      },
-      {
-        title: "Croissance",
-        value: `${stats.growth_rate ?? 0}%`,
-        hint: "Champ backend prêt pour évolution",
-        accent: "#16a34a",
-      },
+      { label: "Top produits", value: topProductsCount },
+      { label: "Statuts suivis", value: statusCount },
+      { label: "Périodes de ventes", value: monthlyPoints },
     ];
-  }, [stats]);
+  }, [statistics]);
 
   return (
-    <section>
-      <p style={{ margin: 0, color: "#2563eb", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
-        Sprint 4 · Seller statistics
-      </p>
-      <h1 style={{ margin: "8px 0 12px", fontSize: 32, color: "#0f172a" }}>Statistiques vendeur</h1>
-      <p style={{ margin: "0 0 24px", color: "#475569", maxWidth: 860, lineHeight: 1.6 }}>
-        Vue analytique branchée sur <code>GET /api/seller/statistics</code> avec filtre de période
-        <code> week | month | year</code> pour piloter la performance commerciale.
-      </p>
+    <SellerShell
+      title="Statistiques vendeur"
+      subtitle="Synthèse des ventes, statuts de commandes et meilleurs produits"
+    >
+      {loading ? (
+        <div>Chargement des statistiques...</div>
+      ) : (
+        <>
+          <SellerStatsCards cards={cards} />
 
-      <SellerWorkspaceTabs />
-
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
-        {periods.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            onClick={() => setPeriod(item.value)}
+          <div
             style={{
-              border: `1px solid ${period === item.value ? "#2563eb" : "#cbd5e1"}`,
-              background: period === item.value ? "#dbeafe" : "#ffffff",
-              color: period === item.value ? "#1d4ed8" : "#334155",
-              borderRadius: 10,
-              padding: "10px 14px",
-              fontWeight: 700,
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 16,
+              alignItems: "start",
             }}
           >
-            {item.label}
-          </button>
-        ))}
-      </div>
+            <section style={card}>
+              <h2 style={sectionTitle}>Ventes par mois</h2>
 
-      {loading && <Loader />}
-      {!loading && error && <ErrorMessage message={error} />}
+              {(statistics?.salesByMonth ?? []).length === 0 ? (
+                <p style={muted}>Aucune donnée mensuelle</p>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={th}>Période</th>
+                      <th style={th}>Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {statistics.salesByMonth.map((entry, index) => (
+                      <tr key={`${extractLabel(entry)}-${index}`}>
+                        <td style={td}>{extractLabel(entry)}</td>
+                        <td style={td}>{money.format(extractValue(entry))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
 
-      {!loading && !error && stats && (
-        <div style={{ display: "grid", gap: 24 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-            {cards.map((card) => (
-              <SellerMetricCard key={card.title} {...card} />
-            ))}
+            <section style={card}>
+              <h2 style={sectionTitle}>Commandes par statut</h2>
+
+              {Object.keys(statistics?.ordersByStatus ?? {}).length === 0 ? (
+                <p style={muted}>Aucune répartition disponible</p>
+              ) : (
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  {Object.entries(statistics.ordersByStatus).map(([key, value]) => (
+                    <li key={key} style={{ marginBottom: 10 }}>
+                      <strong>{key}</strong> : {value}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </div>
 
-          <article style={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 24 }}>
-            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Lecture métier</h2>
-            <ul style={{ margin: 0, paddingLeft: 18, color: "#475569", lineHeight: 1.9 }}>
-              <li>Un fort volume de vues avec une conversion basse suggère de retravailler prix, photos ou fiches produits.</li>
-              <li>Le panier moyen aide à piloter les bundles, ventes flash et seuils promotionnels.</li>
-              <li>La satisfaction client doit rester stable avant d'augmenter le volume expédié.</li>
-              <li>Le champ <code>growth_rate</code> est déjà exposé par l'API, ce qui facilite un futur graphique comparatif.</li>
-            </ul>
-          </article>
-        </div>
+          <section style={{ ...card, marginTop: 16 }}>
+            <h2 style={sectionTitle}>Top produits</h2>
+
+            {(statistics?.topProducts ?? []).length === 0 ? (
+              <p style={muted}>Aucun top produit disponible</p>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={th}>Produit</th>
+                    <th style={th}>Ventes</th>
+                    <th style={th}>Montant</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statistics.topProducts.map((product, index) => (
+                    <tr key={product.id ?? index}>
+                      <td style={td}>{product.name ?? product.title ?? "Produit"}</td>
+                      <td style={td}>{product.sales_count ?? product.quantity ?? 0}</td>
+                      <td style={td}>
+                        {money.format(
+                          Number(product.total ?? product.amount ?? product.revenue ?? 0)
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        </>
       )}
-    </section>
+    </SellerShell>
   );
 }
+
+const card = {
+  background: "#fff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 14,
+  padding: 18,
+};
+
+const sectionTitle = {
+  marginTop: 0,
+};
+
+const muted = {
+  color: "#6b7280",
+};
+
+const th = {
+  textAlign: "left",
+  padding: "10px 0",
+  borderBottom: "1px solid #e5e7eb",
+  color: "#6b7280",
+  fontSize: 13,
+};
+
+const td = {
+  padding: "12px 0",
+  borderBottom: "1px solid #f3f4f6",
+};
