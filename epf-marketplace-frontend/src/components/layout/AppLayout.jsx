@@ -68,6 +68,10 @@ export default function AppLayout() {
                 </NavLink>
               </>
             )}
+
+            {user?.role === "seller" && (
+              <NavLink to="/seller" style={linkStyle}>Espace vendeur</NavLink>
+            )}
           </nav>
 
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
