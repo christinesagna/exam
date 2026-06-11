@@ -25,10 +25,17 @@ Route::middleware('throttle:auth')->group(function (): void {
 Route::get('categories', [CategoryController::class, 'index']);
 Route::get('categories/{category}', [CategoryController::class, 'show']);
 
+// ✅ Routes statiques AVANT la route dynamique {product}
 Route::get('products', [ProductController::class, 'index']);
 Route::get('products/top-selling', [ProductController::class, 'topSelling']);
+
+// ✅ my-products nécessite auth mais doit être déclarée AVANT {product}
+Route::middleware(['auth:sanctum', 'not_suspended'])->group(function (): void {
+    Route::get('products/my-products', [ProductController::class, 'myProducts']);
+});
+
 Route::get('products/{product}/reviews', [ReviewController::class, 'index']);
-Route::get('products/{product}', [ProductController::class, 'show']);
+Route::get('products/{product}', [ProductController::class, 'show']); // dynamique en dernier
 
 Route::get('sellers/{user}', [SellerController::class, 'show']);
 Route::get('sellers/{user}/products', [SellerController::class, 'products']);
@@ -44,7 +51,7 @@ Route::middleware(['auth:sanctum', 'not_suspended'])->group(function (): void {
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::put('auth/profile', [AuthController::class, 'updateProfile']);
 
-    Route::get('products/my-products', [ProductController::class, 'myProducts']);
+    // my-products est maintenant déclarée plus haut, supprimée ici
     Route::get('products/{product}/is-favorite', [ProductController::class, 'isFavorite']);
     Route::post('products/{product}/reviews', [ReviewController::class, 'store']);
 
