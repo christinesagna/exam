@@ -7,7 +7,7 @@ import ProductForm from "../../components/seller/ProductForm";
 import {
   createProduct,
   getCategories,
-  getProduct,
+  getOwnProduct,
   updateProduct,
 } from "../../services/productService";
 
@@ -37,7 +37,7 @@ export default function ProductEditorPage() {
         setLoading(true);
 
         const requests = [getCategories()];
-        if (isEdit) requests.push(getProduct(productId));
+        if (isEdit) requests.push(getOwnProduct(productId));
 
         const results = await Promise.all(requests);
 

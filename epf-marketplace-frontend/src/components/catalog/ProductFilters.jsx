@@ -54,6 +54,7 @@ export default function ProductFilters({
         </button>
       </div>
 
+      {/* Catégorie */}
       <div>
         <label style={labelStyle}>Catégorie</label>
         <select
@@ -61,7 +62,7 @@ export default function ProductFilters({
           onChange={(e) => handleFieldChange("category_id", e.target.value)}
           style={inputStyle}
         >
-          <option value="">Toutes</option>
+          <option value="">Toutes les catégories</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
@@ -70,11 +71,13 @@ export default function ProductFilters({
         </select>
       </div>
 
+      {/* Prix min / max */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
-          <label style={labelStyle}>Prix minimum</label>
+          <label style={labelStyle}>Prix minimum (FCFA)</label>
           <input
             type="number"
+            min="0"
             value={values.min_price || ""}
             onChange={(e) => handleFieldChange("min_price", e.target.value)}
             placeholder="0"
@@ -83,37 +86,56 @@ export default function ProductFilters({
         </div>
 
         <div>
-          <label style={labelStyle}>Prix maximum</label>
+          <label style={labelStyle}>Prix maximum (FCFA)</label>
           <input
             type="number"
+            min="0"
             value={values.max_price || ""}
             onChange={(e) => handleFieldChange("max_price", e.target.value)}
-            placeholder="50000"
+            placeholder="Ex: 50000"
             style={inputStyle}
           />
         </div>
       </div>
 
+      {/* Trier par */}
       <div>
         <label style={labelStyle}>Trier par</label>
         <select
-          value={values.sort || "newest"}
+          value={values.sort || ""}
           onChange={(e) => handleFieldChange("sort", e.target.value)}
           style={inputStyle}
         >
+          <option value="">Par défaut</option>
           <option value="newest">Plus récents</option>
           <option value="cheapest">Moins chers</option>
+          <option value="expensive">Plus chers</option>
           <option value="popular">Plus vendus</option>
           <option value="most_rated">Mieux notés</option>
         </select>
       </div>
+
+      {/* Indicateur de filtres actifs */}
+      {(values.category_id || values.min_price || values.max_price || values.sort) && (
+        <div
+          style={{
+            padding: "8px 12px",
+            background: "#eff6ff",
+            borderRadius: 10,
+            fontSize: 13,
+            color: "#2563eb",
+          }}
+        >
+          ✓ Filtres actifs
+        </div>
+      )}
     </aside>
   );
 }
 
 const labelStyle = {
   display: "block",
-  marginBottom: 8,
+  marginBottom: 6,
   color: "#334155",
   fontSize: 13,
   fontWeight: 700,
@@ -121,11 +143,12 @@ const labelStyle = {
 
 const inputStyle = {
   width: "100%",
-  padding: "12px 14px",
+  padding: "10px 12px",
   border: "1px solid #cbd5e1",
-  borderRadius: 14,
+  borderRadius: 10,
   background: "#f8fafc",
   color: "#0f172a",
   outline: "none",
   boxSizing: "border-box",
+  fontSize: 14,
 };

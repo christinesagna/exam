@@ -5,17 +5,15 @@ import ErrorMessage from "../../components/common/ErrorMessage";
 import EmptyState from "../../components/common/EmptyState";
 import { favoriteService } from "../../services/favoriteService";
 
-function normalizeFavorites(payload) {
-  const root = payload?.data ?? payload ?? {};
-  const raw =
-    root?.favorites ??
-    root?.items ??
-    root?.data ??
-    (Array.isArray(root) ? root : []);
+function dedupeProducts(products = []) {
+  const map = new Map();
 
-  return Array.isArray(raw)
-    ? raw.map((item) => item?.product || item)
-    : [];
+  products.forEach((product) => {
+    if (!product?.id) return;
+    map.set(String(product.id), product);
+  });
+
+  return Array.from(map.values());
 }
 
 export default function FavoritesPage() {
@@ -31,7 +29,7 @@ export default function FavoritesPage() {
         setLoading(true);
         setError("");
         const data = await favoriteService.listFavorites();
-        setFavorites(normalizeFavorites(data));
+        setFavorites(dedupeProducts(data));
       } catch {
         setError("Impossible de charger les favoris.");
       } finally {

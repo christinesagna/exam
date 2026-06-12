@@ -154,10 +154,10 @@ export default function OrdersPage() {
 
 function StatusBadge({ status }) {
   const map = {
-    pending: { bg: "#fef3c7", color: "#92400e", label: "pending" },
-    paid: { bg: "#dcfce7", color: "#166534", label: "paid" },
-    shipped: { bg: "#dbeafe", color: "#1d4ed8", label: "shipped" },
-    cancelled: { bg: "#fee2e2", color: "#991b1b", label: "cancelled" },
+    pending: { bg: "#fef3c7", color: "#92400e", label: "en attente" },
+    paid: { bg: "#dcfce7", color: "#166534", label: "payée" },
+    shipped: { bg: "#dbeafe", color: "#1d4ed8", label: "expédié" },
+    cancelled: { bg: "#fee2e2", color: "#991b1b", label: "annulé" },
   };
 
   const current = map[status] || {

@@ -263,6 +263,18 @@ class ProductController extends Controller
             ],
         ]);
     }
+    public function showOwn(Request $request, Product $product): JsonResponse
+{
+    if ($product->user_id !== $request->user()->id) {
+        abort(403);
+    }
+
+    $product->load(['category:id,name,slug']);
+
+    return response()->json([
+        'product' => $this->sellerProductPayload($product),
+    ]);
+}
 
     public function isFavorite(Request $request, Product $product): JsonResponse
     {

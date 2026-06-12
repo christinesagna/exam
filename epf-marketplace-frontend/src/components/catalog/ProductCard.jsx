@@ -14,65 +14,49 @@ export default function ProductCard({ product }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const isBuyer = user?.role === "buyer";
 
-  const image =
-    product?.thumbnail ||
-    product?.image ||
-    product?.images?.[0]?.url ||
-    product?.images?.[0] ||
-    null;
+  // thumbnail et image sont des strings URL absolues (après normalizeProduct)
+  // images est un tableau de strings
+  const image = !imgError
+    ? (product?.thumbnail ||
+       product?.image ||
+       product?.image_url ||
+       (typeof product?.images?.[0] === "string" ? product.images[0] : product?.images?.[0]?.url) ||
+       null)
+    : null;
 
   const price = product?.effective_price ?? product?.price ?? 0;
   const oldPrice =
-    product?.effective_price && product?.price !== product?.effective_price
+    product?.effective_price &&
+    product?.price &&
+    Number(product.effective_price) < Number(product.price)
       ? product.price
       : null;
 
   useEffect(() => {
     let ignore = false;
-
     const checkFavorite = async () => {
       if (!isAuthenticated || !isBuyer || !product?.id) return;
-
       try {
         const result = await favoriteService.isFavorite(product.id);
-        const value =
-          result?.is_favorite ??
-          result?.data?.is_favorite ??
-          false;
-
-        if (!ignore) {
-          setIsFavorite(Boolean(value));
-        }
+        const value = result?.is_favorite ?? result?.data?.is_favorite ?? false;
+        if (!ignore) setIsFavorite(Boolean(value));
       } catch {
         if (!ignore) setIsFavorite(false);
       }
     };
-
     checkFavorite();
-
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, [isAuthenticated, isBuyer, product?.id]);
 
   const handleToggleFavorite = async () => {
-    if (!isAuthenticated) {
-      toast.error("Connecte-toi pour gérer les favoris.");
-      navigate("/login");
-      return;
-    }
-
-    if (!isBuyer) {
-      toast.error("Cette action est réservée au buyer.");
-      return;
-    }
-
+    if (!isAuthenticated) { toast.error("Connecte-toi pour gérer les favoris."); navigate("/login"); return; }
+    if (!isBuyer) { toast.error("Cette action est réservée au buyer."); return; }
     try {
       setFavoriteLoading(true);
-
       if (isFavorite) {
         await favoriteService.removeFavorite(product.id);
         setIsFavorite(false);
@@ -82,33 +66,19 @@ export default function ProductCard({ product }) {
         setIsFavorite(true);
         toast.success("Ajouté aux favoris.");
       }
-    } catch {
-      toast.error("Impossible de mettre à jour les favoris.");
-    } finally {
-      setFavoriteLoading(false);
-    }
+    } catch { toast.error("Impossible de mettre à jour les favoris."); }
+    finally { setFavoriteLoading(false); }
   };
 
   const handleAddToCart = async () => {
-    if (!isAuthenticated) {
-      toast.error("Connecte-toi pour ajouter au panier.");
-      navigate("/login");
-      return;
-    }
-
-    if (!isBuyer) {
-      toast.error("Le panier est réservé au buyer.");
-      return;
-    }
-
+    if (!isAuthenticated) { toast.error("Connecte-toi pour ajouter au panier."); navigate("/login"); return; }
+    if (!isBuyer) { toast.error("Le panier est réservé au buyer."); return; }
     try {
       setCartLoading(true);
       await addToCart(product.id, 1);
-    } catch {
-      toast.error("Impossible d'ajouter ce produit au panier.");
-    } finally {
-      setCartLoading(false);
-    }
+      toast.success("Ajouté au panier !");
+    } catch { toast.error("Impossible d'ajouter ce produit au panier."); }
+    finally { setCartLoading(false); }
   };
 
   return (
@@ -119,13 +89,12 @@ export default function ProductCard({ product }) {
         overflow: "hidden",
         background: "#fff",
         boxShadow: "0 4px 18px rgba(15,23,42,0.04)",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <div style={{ position: "relative" }}>
-        <Link
-          to={`/products/${product.id}`}
-          style={{ textDecoration: "none", color: "inherit" }}
-        >
+        <Link to={`/products/${product.id}`} style={{ textDecoration: "none", color: "inherit" }}>
           <div
             style={{
               height: 220,
@@ -133,6 +102,7 @@ export default function ProductCard({ product }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              overflow: "hidden",
             }}
           >
             {image ? (
@@ -140,9 +110,13 @@ export default function ProductCard({ product }) {
                 src={image}
                 alt={product.title || product.name}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={() => setImgError(true)}
               />
             ) : (
-              <span style={{ color: "#6b7280" }}>Pas d’image</span>
+              <div style={{ textAlign: "center", color: "#9ca3af" }}>
+                <div style={{ fontSize: 40, marginBottom: 6 }}>🖼️</div>
+                <div style={{ fontSize: 12 }}>Pas d'image</div>
+              </div>
             )}
           </div>
         </Link>
@@ -152,16 +126,11 @@ export default function ProductCard({ product }) {
             onClick={handleToggleFavorite}
             disabled={favoriteLoading}
             style={{
-              position: "absolute",
-              top: 12,
-              right: 12,
-              border: "1px solid #e5e7eb",
-              background: "#fff",
-              borderRadius: "999px",
-              width: 40,
-              height: 40,
-              cursor: "pointer",
-              fontSize: 18,
+              position: "absolute", top: 10, right: 10,
+              border: "1px solid #e5e7eb", background: "rgba(255,255,255,0.9)",
+              borderRadius: "999px", width: 36, height: 36,
+              cursor: "pointer", fontSize: 16,
+              display: "flex", alignItems: "center", justifyContent: "center",
             }}
             aria-label="Basculer le favori"
           >
@@ -170,78 +139,79 @@ export default function ProductCard({ product }) {
         )}
       </div>
 
-      <div style={{ padding: 16 }}>
-        <Link
-          to={`/products/${product.id}`}
-          style={{ textDecoration: "none", color: "inherit" }}
-        >
-          <h3 style={{ margin: "0 0 8px", fontSize: 17 }}>
+      <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
+        <Link to={`/products/${product.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+          <h3 style={{ margin: "0 0 6px", fontSize: 16, lineHeight: 1.3 }}>
             {product.title || product.name}
           </h3>
         </Link>
 
         {product.category?.name && (
-          <p style={{ margin: "0 0 8px", color: "#6b7280", fontSize: 14 }}>
+          <p style={{ margin: "0 0 8px", color: "#6b7280", fontSize: 13 }}>
             {product.category.name}
           </p>
         )}
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-          <strong style={{ fontSize: 20, color: "#111827" }}>
-            {Number(price).toFixed(2)} FCFA
+          <strong style={{ fontSize: 18, color: "#111827" }}>
+            {Number(price).toLocaleString("fr-FR")} FCFA
           </strong>
-
           {oldPrice && (
-            <span
-              style={{
-                color: "#9ca3af",
-                textDecoration: "line-through",
-                fontSize: 14,
-              }}
-            >
-              {Number(oldPrice).toFixed(2)} FCFA
+            <span style={{ color: "#9ca3af", textDecoration: "line-through", fontSize: 13 }}>
+              {Number(oldPrice).toLocaleString("fr-FR")} FCFA
             </span>
           )}
         </div>
 
         {product.seller?.name && (
-          <p style={{ margin: "0 0 14px", fontSize: 14, color: "#4b5563" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 13, color: "#4b5563" }}>
             Vendeur : <strong>{product.seller.name}</strong>
           </p>
         )}
 
-        <div style={{ display: "flex", gap: 10 }}>
+        {/* Bouton "Écrire un message" au vendeur — visible pour les buyers */}
+        {isBuyer && product.seller?.id && (
           <Link
-            to={`/products/${product.id}`}
+            to={`/messages/${product.seller.id}`}
             style={{
-              flex: 1,
+              display: "block",
               textAlign: "center",
               textDecoration: "none",
               border: "1px solid #d1d5db",
-              color: "#111827",
-              padding: "10px 12px",
+              color: "#374151",
+              padding: "8px 10px",
               borderRadius: 10,
-              fontWeight: 600,
+              fontWeight: 500,
+              fontSize: 13,
+              marginBottom: 8,
+              background: "#f9fafb",
+            }}
+          >
+            💬 Écrire au vendeur
+          </Link>
+        )}
+
+        <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+          <Link
+            to={`/products/${product.id}`}
+            style={{
+              flex: 1, textAlign: "center", textDecoration: "none",
+              border: "1px solid #d1d5db", color: "#111827",
+              padding: "10px 10px", borderRadius: 10, fontWeight: 600, fontSize: 14,
             }}
           >
             Voir
           </Link>
-
           <button
             onClick={handleAddToCart}
             disabled={cartLoading}
             style={{
-              flex: 1,
-              border: "none",
-              background: "#2563eb",
-              color: "#fff",
-              padding: "10px 12px",
-              borderRadius: 10,
-              fontWeight: 600,
-              cursor: "pointer",
+              flex: 1, border: "none", background: "#2563eb", color: "#fff",
+              padding: "10px 10px", borderRadius: 10, fontWeight: 600,
+              cursor: "pointer", fontSize: 14,
             }}
           >
-            {cartLoading ? "Ajout..." : "Panier"}
+            {cartLoading ? "Ajout..." : "🛒 Panier"}
           </button>
         </div>
       </div>

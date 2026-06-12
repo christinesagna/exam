@@ -71,9 +71,9 @@ export default function MyProductsPage() {
             }}
           >
             <option value="all">Tous</option>
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-            <option value="sold">sold</option>
+            <option value="draft">brouillon</option>
+            <option value="published">publié</option>
+            <option value="sold">vendu</option>
           </select>
 
           <Link

@@ -21,6 +21,9 @@ import ProfilePage from "../pages/auth/ProfilePage";
 // Buyer
 import CartPage from "../pages/buyer/CartPage";
 import OrdersPage from "../pages/buyer/OrdersPage";
+import OrderDetailPage from "../pages/buyer/OrderDetailPage";
+import FavoritesPage from "../pages/buyer/FavoritesPage";
+import CheckoutPage from "../pages/buyer/CheckoutPage";
 
 // Seller
 import SellerDashboardPage from "../pages/seller/SellerDashboardPage";
@@ -68,7 +71,10 @@ export default function AppRouter() {
           {/* Buyer */}
           <Route element={<RoleGuard allowedRoles={["buyer"]} />}>
             <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/orders/:id" element={<OrderDetailPage />} />
           </Route>
 
           {/* Seller */}

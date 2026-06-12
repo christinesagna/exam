@@ -43,7 +43,7 @@ export default function ProductTable({ products = [], onDelete }) {
                 <td style={td}>{product.title ?? product.name}</td>
                 <td style={td}>{money.format(Number(product.price ?? 0))}</td>
                 <td style={td}>{product.quantity ?? product.stock ?? 0}</td>
-                <td style={td}>{product.status ?? "draft"}</td>
+                <td style={td}>{product.status === "draft" ? "brouillon" : product.status === "published" ? "publié" : product.status === "sold" ? "vendu" : product.status ?? "brouillon"}</td>
                 <td style={td}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <Link to={`/seller/products/${product.id}/edit`}>

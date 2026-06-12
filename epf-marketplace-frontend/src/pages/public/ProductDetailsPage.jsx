@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Loader from "../../components/common/Loader";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import ReviewList from "../../components/catalog/ReviewList";
+import ReviewForm from "../../components/ReviewForm";           // ✅ ajouté
 import { productService } from "../../services/productService";
 import { favoriteService } from "../../services/favoriteService";
 import { useAuth } from "../../hooks/useAuth";
@@ -17,35 +18,46 @@ export default function ProductDetailsPage() {
   const { addToCart } = useCart();
 
   const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const isBuyer = user?.role === "buyer";
+
+  // Cherche si l'utilisateur connecté a déjà posté un avis
+  const myExistingReview = reviews.find(
+    (r) => r.user_id === user?.id || r.reviewer_id === user?.id
+  ) ?? null;
 
   useEffect(() => {
     let ignore = false;
 
-    const loadProduct = async () => {
+    const load = async () => {
       try {
         setLoading(true);
         setError("");
+        setSelectedIndex(0);
 
         const data = await productService.getById(id);
+        if (!ignore) setProduct(data);
 
-        if (!ignore) {
-          setProduct(data);
+        try {
+          const reviewData = await productService.getProductReviews(id);
+          const arr = reviewData?.items ?? (Array.isArray(reviewData) ? reviewData : []);
+          if (!ignore) setReviews(arr.length > 0 ? arr : (data?.reviews ?? []));
+        } catch {
+          if (!ignore) setReviews(data?.reviews ?? []);
         }
 
         if (isAuthenticated && isBuyer) {
           try {
             const fav = await favoriteService.isFavorite(id);
-            const value = fav?.is_favorite ?? fav?.data?.is_favorite ?? false;
-            if (!ignore) {
-              setIsFavorite(Boolean(value));
-            }
+            const val = fav?.is_favorite ?? fav?.data?.is_favorite ?? false;
+            if (!ignore) setIsFavorite(Boolean(val));
           } catch {
             if (!ignore) setIsFavorite(false);
           }
@@ -57,81 +69,60 @@ export default function ProductDetailsPage() {
       }
     };
 
-    loadProduct();
-
-    return () => {
-      ignore = true;
-    };
+    load();
+    return () => { ignore = true; };
   }, [id, isAuthenticated, isBuyer]);
 
-  const images = useMemo(() => {
-    if (!product) return [];
-    if (Array.isArray(product.images) && product.images.length) return product.images;
-    const fallback = product.thumbnail || product.image;
-    return fallback ? [fallback] : [];
-  }, [product]);
-
-  const firstImage =
-    typeof images[0] === "string" ? images[0] : images?.[0]?.url || null;
-
-  const reviews = product?.reviews || product?.product_reviews || [];
+  const images = product?.images?.length
+    ? product.images
+    : product?.thumbnail
+    ? [product.thumbnail]
+    : [];
 
   const handleToggleFavorite = async () => {
-    if (!isAuthenticated) {
-      toast.error("Connecte-toi pour gérer les favoris.");
-      navigate("/login");
-      return;
-    }
-
-    if (!isBuyer) {
-      toast.error("Cette action est réservée au buyer.");
-      return;
-    }
-
+    if (!isAuthenticated) { toast.error("Connecte-toi pour gérer les favoris."); navigate("/login"); return; }
+    if (!isBuyer) { toast.error("Cette action est réservée au buyer."); return; }
     try {
       setFavoriteLoading(true);
-
       if (isFavorite) {
         await favoriteService.removeFavorite(product.id);
         setIsFavorite(false);
-        toast.success("Produit retiré des favoris.");
+        toast.success("Retiré des favoris.");
       } else {
         await favoriteService.addFavorite(product.id);
         setIsFavorite(true);
-        toast.success("Produit ajouté aux favoris.");
+        toast.success("Ajouté aux favoris.");
       }
-    } catch {
-      toast.error("Impossible de mettre à jour les favoris.");
-    } finally {
-      setFavoriteLoading(false);
-    }
+    } catch { toast.error("Impossible de mettre à jour les favoris."); }
+    finally { setFavoriteLoading(false); }
   };
 
   const handleAddToCart = async () => {
-    if (!isAuthenticated) {
-      toast.error("Connecte-toi pour ajouter au panier.");
-      navigate("/login");
-      return;
-    }
-
-    if (!isBuyer) {
-      toast.error("Le panier est réservé au buyer.");
-      return;
-    }
-
+    if (!isAuthenticated) { toast.error("Connecte-toi pour ajouter au panier."); navigate("/login"); return; }
+    if (!isBuyer) { toast.error("Le panier est réservé au buyer."); return; }
     try {
       setCartLoading(true);
       await addToCart(product.id, 1);
-    } catch {
-      toast.error("Impossible d'ajouter ce produit au panier.");
-    } finally {
-      setCartLoading(false);
-    }
+      toast.success("Produit ajouté au panier !");
+    } catch { toast.error("Impossible d'ajouter ce produit au panier."); }
+    finally { setCartLoading(false); }
+  };
+
+  // ✅ Rafraîchit la liste des avis après soumission ou suppression
+  const handleReviewSubmitted = (newReview) => {
+    setReviews((prev) => [newReview, ...prev]);
+  };
+
+  const handleReviewDeleted = (deletedId) => {
+    setReviews((prev) => prev.filter((r) => r.id !== deletedId));
   };
 
   if (loading) return <Loader />;
   if (error) return <ErrorMessage message={error} />;
   if (!product) return <ErrorMessage message="Produit introuvable." />;
+
+  const description = product.description || product.details || product.summary || "";
+  const currentImage = images[selectedIndex] ?? null;
 
   return (
     <section>
@@ -139,79 +130,121 @@ export default function ProductDetailsPage() {
         ← Retour au catalogue
       </Link>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 24,
-          marginTop: 20,
-          alignItems: "start",
-        }}
-      >
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: 16,
-            overflow: "hidden",
-            background: "#fff",
-            minHeight: 380,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {firstImage ? (
-            <img
-              src={firstImage}
-              alt={product.title || product.name}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          ) : (
-            <span>Pas d’image</span>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 20, alignItems: "start" }}>
+
+        {/* Colonne image */}
+        <div>
+          <div style={{
+            border: "1px solid #e5e7eb", borderRadius: 16, overflow: "hidden",
+            background: "#f9fafb", height: 380,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            {currentImage ? (
+              <img
+                src={currentImage}
+                alt={product.title || product.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.parentNode.innerHTML =
+                    '<div style="color:#9ca3af;text-align:center"><div style="font-size:48px">🖼️</div><div style="font-size:13px;margin-top:6px">Image indisponible</div></div>';
+                }}
+              />
+            ) : (
+              <div style={{ textAlign: "center", color: "#9ca3af" }}>
+                <div style={{ fontSize: 56 }}>🖼️</div>
+                <div style={{ fontSize: 13, marginTop: 8 }}>Pas d'image disponible</div>
+              </div>
+            )}
+          </div>
+
+          {images.length > 1 && (
+            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+              {images.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Vue ${idx + 1}`}
+                  onClick={() => setSelectedIndex(idx)}
+                  style={{
+                    width: 60, height: 60, objectFit: "cover", borderRadius: 8, cursor: "pointer",
+                    border: selectedIndex === idx ? "2px solid #2563eb" : "2px solid #e5e7eb",
+                  }}
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+              ))}
+            </div>
           )}
         </div>
 
+        {/* Colonne infos */}
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 24 }}>
-          <h1 style={{ marginTop: 0 }}>{product.title || product.name}</h1>
+          <h1 style={{ marginTop: 0, marginBottom: 12 }}>{product.title || product.name}</h1>
 
-          <p style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>
-            {Number(product.effective_price ?? product.price ?? 0).toFixed(2)} FCFA
-          </p>
+          <div style={{ marginBottom: 16 }}>
+            <span style={{ fontSize: 26, fontWeight: 800, color: "#2563eb" }}>
+              {Number(product.effective_price ?? product.price ?? 0).toLocaleString("fr-FR")} FCFA
+            </span>
+            {product.effective_price && product.price && Number(product.effective_price) < Number(product.price) && (
+              <span style={{ marginLeft: 10, textDecoration: "line-through", color: "#9ca3af", fontSize: 16 }}>
+                {Number(product.price).toLocaleString("fr-FR")} FCFA
+              </span>
+            )}
+          </div>
 
-          <p style={{ color: "#4b5563", lineHeight: 1.7 }}>
-            {product.description || "Aucune description disponible."}
-          </p>
+          <div style={{ marginBottom: 16 }}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Description
+            </h3>
+            {description ? (
+              <p style={{ color: "#374151", lineHeight: 1.7, margin: 0, whiteSpace: "pre-line" }}>
+                {description}
+              </p>
+            ) : (
+              <p style={{ color: "#9ca3af", fontStyle: "italic", margin: 0 }}>
+                Aucune description fournie par le vendeur.
+              </p>
+            )}
+          </div>
 
           {product.category?.name && (
-            <p><strong>Catégorie :</strong> {product.category.name}</p>
+            <p style={{ margin: "8px 0" }}>
+              <strong>Catégorie :</strong>{" "}
+              <span style={{ background: "#eff6ff", color: "#2563eb", padding: "2px 10px", borderRadius: 20, fontSize: 13 }}>
+                {product.category.name}
+              </span>
+            </p>
           )}
 
           {product.seller?.id && (
-            <p>
+            <p style={{ margin: "8px 0" }}>
               <strong>Vendeur :</strong>{" "}
-              <Link to={`/sellers/${product.seller.id}`}>
+              <Link to={`/sellers/${product.seller.id}`} style={{ color: "#2563eb" }}>
                 {product.seller.name || "Voir le vendeur"}
               </Link>
             </p>
           )}
 
-          <p><strong>Stock :</strong> {product.stock ?? "N/A"}</p>
+          <p style={{ margin: "8px 0 20px" }}>
+            <strong>Stock :</strong>{" "}
+            <span style={{ color: (product.stock ?? 0) > 0 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
+              {(product.stock ?? 0) > 0 ? `${product.stock} disponible(s)` : "Rupture de stock"}
+            </span>
+          </p>
 
-          <div style={{ display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <button
               onClick={handleAddToCart}
-              disabled={cartLoading}
+              disabled={cartLoading || (product.stock ?? 0) === 0}
               style={{
                 border: "none",
-                background: "#2563eb",
-                color: "#fff",
-                padding: "12px 18px",
-                borderRadius: 10,
-                cursor: "pointer",
-                fontWeight: 700,
+                background: (product.stock ?? 0) === 0 ? "#9ca3af" : "#2563eb",
+                color: "#fff", padding: "13px 20px", borderRadius: 12,
+                cursor: (product.stock ?? 0) === 0 ? "not-allowed" : "pointer",
+                fontWeight: 700, fontSize: 15,
               }}
             >
-              {cartLoading ? "Ajout..." : "Ajouter au panier"}
+              {cartLoading ? "Ajout en cours..." : "🛒 Ajouter au panier"}
             </button>
 
             {isBuyer && (
@@ -219,24 +252,56 @@ export default function ProductDetailsPage() {
                 onClick={handleToggleFavorite}
                 disabled={favoriteLoading}
                 style={{
-                  border: "1px solid #d1d5db",
-                  background: "#fff",
-                  color: "#111827",
-                  padding: "12px 18px",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                  fontWeight: 700,
+                  border: "1px solid #d1d5db", background: "#fff", color: "#111827",
+                  padding: "13px 20px", borderRadius: 12, cursor: "pointer", fontWeight: 600, fontSize: 15,
                 }}
               >
                 {isFavorite ? "❤️ Retirer des favoris" : "🤍 Ajouter aux favoris"}
               </button>
             )}
+
+            {isBuyer && product.seller?.id && (
+              <Link
+                to={`/messages/${product.seller.id}`}
+                style={{
+                  display: "block", textAlign: "center", textDecoration: "none",
+                  border: "1px solid #d1d5db", color: "#374151",
+                  padding: "13px 20px", borderRadius: 12, fontWeight: 600, fontSize: 15,
+                  background: "#f9fafb",
+                }}
+              >
+                💬 Contacter le vendeur
+              </Link>
+            )}
           </div>
         </div>
       </div>
 
-      <div style={{ marginTop: 32 }}>
-        <h2>Avis</h2>
+      {/* ===================== Section avis ===================== */}
+      <div style={{ marginTop: 40 }}>
+        <h2 style={{ marginBottom: 16 }}>
+          Avis clients{" "}
+          {reviews.length > 0 && (
+            <span style={{ color: "#6b7280", fontWeight: 400, fontSize: 16 }}>
+              ({reviews.length})
+            </span>
+          )}
+        </h2>
+
+        {/* ✅ Formulaire affiché uniquement pour les buyers connectés */}
+        {isAuthenticated && isBuyer ? (
+          <ReviewForm
+            productId={product.id}
+            existingReview={myExistingReview}
+            onReviewSubmitted={handleReviewSubmitted}
+            onReviewDeleted={handleReviewDeleted}
+          />
+        ) : !isAuthenticated ? (
+          <p style={{ color: "#6b7280", marginBottom: 16, fontSize: 14 }}>
+            <Link to="/login" style={{ color: "#2563eb" }}>Connecte-toi</Link> pour laisser un avis.
+          </p>
+        ) : null}
+
         <ReviewList reviews={reviews} />
       </div>
     </section>

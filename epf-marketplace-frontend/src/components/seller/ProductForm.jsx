@@ -12,7 +12,7 @@ export default function ProductForm({
       title: initialValues.title ?? initialValues.name ?? "",
       description: initialValues.description ?? "",
       price: initialValues.price ?? "",
-      stock: initialValues.stock ?? "",
+      stock: initialValues.stock ?? initialValues.quantity ?? "",
       category_id: initialValues.category_id ?? initialValues.category?.id ?? "",
       status: initialValues.status ?? "draft",
       flash_sale: Boolean(
@@ -45,7 +45,7 @@ export default function ProductForm({
     formData.append("title", values.title);
     formData.append("description", values.description);
     formData.append("price", values.price);
-    formData.append("stock", values.stock);
+    formData.append("quantity", values.stock);
     formData.append("category_id", values.category_id);
     formData.append("status", values.status);
     formData.append("flash_sale", values.flash_sale ? "1" : "0");
@@ -147,9 +147,9 @@ export default function ProductForm({
         <div style={card}>
           <label style={label}>Statut</label>
           <select {...register("status")} style={input}>
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-            <option value="sold">sold</option>
+            <option value="draft">brouillon</option>
+            <option value="published">publié</option>
+            <option value="sold">vendu</option>
           </select>
         </div>
 

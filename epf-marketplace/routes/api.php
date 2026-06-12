@@ -57,6 +57,7 @@ Route::middleware(['auth:sanctum', 'not_suspended'])->group(function (): void {
 
     Route::middleware('seller')->group(function (): void {
         Route::post('products', [ProductController::class, 'store']);
+        Route::get('products/{product}/owner', [ProductController::class, 'showOwn']);
     });
 
     Route::put('products/{product}', [ProductController::class, 'update']);

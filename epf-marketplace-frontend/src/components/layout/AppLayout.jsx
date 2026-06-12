@@ -14,6 +14,8 @@ export default function AppLayout() {
   const { itemCount } = useCart();
 
   const isBuyer = user?.role === "buyer";
+  const isSeller = user?.role === "seller";
+  const isAdmin = user?.role === "admin";
 
   const handleLogout = async () => {
     await logout();
@@ -59,26 +61,47 @@ export default function AppLayout() {
             <NavLink to="/" style={linkStyle}>Accueil</NavLink>
             <NavLink to="/products" style={linkStyle}>Catalogue</NavLink>
 
+            {/* Liens acheteur */}
             {isBuyer && (
               <>
                 <NavLink to="/favorites" style={linkStyle}>Favoris</NavLink>
                 <NavLink to="/orders" style={linkStyle}>Mes commandes</NavLink>
                 <NavLink to="/cart" style={linkStyle}>
-                  Panier {itemCount > 0 ? `(${itemCount})` : ""}
+                  🛒 Panier {itemCount > 0 ? `(${itemCount})` : ""}
                 </NavLink>
               </>
             )}
 
-            {user?.role === "seller" && (
-              <NavLink to="/seller" style={linkStyle}>Espace vendeur</NavLink>
+            {/* Messages : visible pour tout utilisateur connecté */}
+            {isAuthenticated && (
+              <NavLink to="/messages" style={linkStyle}>💬 Messages</NavLink>
+            )}
+
+            {/* Liens vendeur */}
+            {isSeller && (
+              <NavLink to="/seller" style={linkStyle}>🏪 Espace vendeur</NavLink>
+            )}
+
+            {/* Liens admin */}
+            {isAdmin && (
+              <NavLink to="/admin" style={linkStyle}>⚙️ Admin</NavLink>
             )}
           </nav>
 
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
             {isAuthenticated ? (
               <>
-                <span style={{ fontSize: 14, color: "#4b5563" }}>
-                  {user?.name || user?.email} {user?.role ? `(${user.role})` : ""}
+                <span style={{
+                  fontSize: 13,
+                  color: "#4b5563",
+                  background: "#f3f4f6",
+                  padding: "4px 10px",
+                  borderRadius: 20,
+                }}>
+                  {user?.name || user?.email}{" "}
+                  <span style={{ color: "#2563eb", fontWeight: 600 }}>
+                    ({user?.role})
+                  </span>
                 </span>
                 <NavLink to="/profile" style={linkStyle}>Profil</NavLink>
                 <button

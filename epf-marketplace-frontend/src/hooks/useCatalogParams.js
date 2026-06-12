@@ -10,7 +10,8 @@ export function useCatalogParams() {
       category_id: searchParams.get("category_id") || "",
       min_price: searchParams.get("min_price") || "",
       max_price: searchParams.get("max_price") || "",
-      sort: searchParams.get("sort") || "newest",
+      // Pas de valeur par défaut pour sort : "" signifie "pas de filtre"
+      sort: searchParams.get("sort") || "",
       page: Number(searchParams.get("page") || 1),
     }),
     [searchParams]
