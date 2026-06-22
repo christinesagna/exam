@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Loader from "../../components/common/Loader";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import { orderService } from "../../services/orderService";
@@ -56,12 +58,12 @@ export default function OrderDetailPage() {
   if (!order) return <ErrorMessage message="Commande introuvable." />;
 
   const items = order.items || order.order_items || [];
-  const total = Number(order.total ?? order.amount ?? 0);
+  const total = Number(order.total_amount ?? order.total ?? order.amount ?? 0);
 
   return (
     <section>
       <Link to="/orders" style={{ color: "#2563eb", textDecoration: "none" }}>
-        ← Retour à mes commandes
+        <FontAwesomeIcon icon={faArrowLeft} /> Retour à mes commandes
       </Link>
 
       <div

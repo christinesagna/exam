@@ -160,6 +160,32 @@ class OrderController extends Controller
         ]);
     }
 
+    public function validateCoupon(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:40'],
+            'subtotal' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $subtotal = $request->input('subtotal', 0);
+        $couponPayload = CouponService::validateAndComputeDiscount($data['code'], (string) $subtotal);
+
+        return response()->json([
+            'coupon' => $couponPayload['coupon'] ? [
+                'id' => $couponPayload['coupon']->id,
+                'code' => $couponPayload['coupon']->code,
+                'type' => $couponPayload['coupon']->type,
+                'value' => $couponPayload['coupon']->value,
+                'usage_limit' => $couponPayload['coupon']->usage_limit,
+                'min_order_total' => $couponPayload['coupon']->min_order_total,
+                'starts_at' => $couponPayload['coupon']->starts_at?->toIso8601String(),
+                'ends_at' => $couponPayload['coupon']->ends_at?->toIso8601String(),
+                'is_active' => $couponPayload['coupon']->is_active,
+            ] : null,
+            'discount' => $couponPayload['discount'],
+        ]);
+    }
+
     public function sellerOrders(Request $request): JsonResponse
     {
         if (! in_array($request->user()->role, ['seller', 'admin'], true)) {

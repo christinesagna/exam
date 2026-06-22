@@ -31,10 +31,18 @@ export default function ProductFilters({
           justifyContent: "space-between",
           alignItems: "center",
           gap: 12,
+          flexWrap: "wrap",
         }}
       >
-        <div>
-          <h3 style={{ margin: "0 0 4px", fontSize: 18 }}>Filtres</h3>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 18 }}>Filtres</h3>
           <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
             Affine le catalogue selon tes préférences.
           </p>

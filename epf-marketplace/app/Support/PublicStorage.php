@@ -12,6 +12,13 @@ final class PublicStorage
             return null;
         }
 
-        return Storage::disk('public')->url($path);
+        $path = str_replace('\\', '/', trim($path));
+        $path = preg_replace('#^/?(?:public/|storage/)#i', '', $path);
+
+        if ($path === '' || ! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return url('/storage/'.$path);
     }
 }

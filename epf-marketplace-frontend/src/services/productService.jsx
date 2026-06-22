@@ -42,43 +42,84 @@ function isObject(value) {
 // ─────────────────────────────────────────────
 // Conversion URL image → URL absolue
 // Laravel retourne souvent : "storage/products/xxx.jpg"
-// ou "/storage/products/xxx.jpg"
-// Il faut préfixer avec http://localhost:8000
+// ou "/storage/products/xxx.jpg" (chemin du disque "public")
+// Il faut préfixer avec l'origine de l'API (ex: http://localhost:8000)
+//
+// Sur certaines installations (Windows, storage:link manquant, chemin
+// déjà préfixé par "public/" ou "storage/"...) le chemin renvoyé par
+// l'API peut être mal formé. On nettoie donc le chemin ET on génère
+// plusieurs URL "candidates" possibles, essayées une par une dans le
+// composant (voir buildImageCandidates).
 // ─────────────────────────────────────────────
-function toAbsoluteUrl(value) {
+function cleanRelativePath(value) {
   if (!value || typeof value !== "string") return null;
 
+  let cleaned = value.trim();
+  if (!cleaned) return null;
+
+  // Normalise les séparateurs Windows ("\\") en "/"
+  cleaned = cleaned.replace(/\\/g, "/");
+  // Supprime les "/" en début de chaîne
+  cleaned = cleaned.replace(/^\/+/, "");
+  // Supprime un éventuel préfixe "public/" (chemin disque local Laravel)
+  cleaned = cleaned.replace(/^public\//i, "");
+
+  return cleaned || null;
+}
+
+// Construit la liste de toutes les URL absolues possibles pour un chemin
+// d'image brut renvoyé par l'API, des plus probables aux moins probables.
+function buildImageCandidates(value) {
+  if (!value || typeof value !== "string") return [];
+
   const trimmed = value.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return [];
 
   // Déjà une URL absolue ou data URI
   if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("data:")) {
-    return trimmed;
+    return [trimmed];
   }
 
   if (trimmed.startsWith("//")) {
-    return `http:${trimmed}`;
+    return [`http:${trimmed}`];
   }
 
-  // Chemin relatif (avec ou sans "/" initial)
-  // ex: "storage/products/img.jpg" → "http://localhost:8000/storage/products/img.jpg"
-  const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  return `${API_ORIGIN}${path}`;
+  const cleaned = cleanRelativePath(trimmed);
+  if (!cleaned) return [];
+
+  const withoutStorage = cleaned.replace(/^storage\//i, "");
+
+  const candidates = [
+    // 1) Cas standard Laravel : disque "public" exposé via /storage
+    //    ex: "products/xxx.jpg" -> "http://host:8000/storage/products/xxx.jpg"
+    `${API_ORIGIN}/storage/${withoutStorage}`,
+    // 2) Le backend renvoie déjà "storage/products/xxx.jpg"
+    `${API_ORIGIN}/${cleaned}`,
+    // 3) Chemin tel quel sans /storage (au cas où servi directement)
+    `${API_ORIGIN}/${withoutStorage}`,
+    // 4) Servi depuis l'API elle-même (ex: http://host:8000/api/storage/...)
+    `${API_BASE_URL.replace(/\/$/, "")}/storage/${withoutStorage}`,
+  ];
+
+  // Déduplique tout en conservant l'ordre
+  return [...new Set(candidates)];
 }
 
-// Extrait l'URL d'une entrée image quelle que soit sa forme
-// Laravel peut retourner : une string, ou un objet {url, path, image_url, src...}
-function extractImageUrl(entry) {
+function toAbsoluteUrl(value) {
+  const candidates = buildImageCandidates(value);
+  return candidates[0] ?? null;
+}
+
+// Extrait la valeur brute (chemin / URL non transformée) d'une entrée image
+// quelle que soit sa forme (string ou objet {url, path, image_url, src...})
+function extractRawImageValue(entry) {
   if (!entry) return null;
 
-  if (typeof entry === "string") {
-    return toAbsoluteUrl(entry);
-  }
+  if (typeof entry === "string") return entry;
 
   if (!isObject(entry)) return null;
 
-  // Tous les champs possibles que Laravel peut utiliser
-  const raw =
+  return (
     entry.url ??
     entry.image_url ??
     entry.src ??
@@ -91,9 +132,14 @@ function extractImageUrl(entry) {
     entry.thumbnail_url ??
     entry.imageUrl ??
     entry.filePath ??
-    null;
+    null
+  );
+}
 
-  return toAbsoluteUrl(raw);
+// Extrait l'URL d'une entrée image quelle que soit sa forme
+// Laravel peut retourner : une string, ou un objet {url, path, image_url, src...}
+function extractImageUrl(entry) {
+  return toAbsoluteUrl(extractRawImageValue(entry));
 }
 
 // ─────────────────────────────────────────────
@@ -112,14 +158,26 @@ function extractProductSource(raw) {
 
 // ─────────────────────────────────────────────
 // Extraction et normalisation des images
-// Retourne un tableau de strings (URLs absolues)
+// Retourne :
+//  - images : tableau de strings (URL absolue "principale" pour chaque image)
+//  - imageCandidates : tableau parallèle, chaque entrée étant la liste des
+//    URL alternatives à essayer si la principale renvoie une erreur 404
+//    (storage:link manquant, chemin mal préfixé, etc.)
 // ─────────────────────────────────────────────
 function extractProductImages(source = {}) {
   const collected = [];
+  const collectedCandidates = [];
 
-  const addUrl = (entry) => {
-    const url = extractImageUrl(entry);
-    if (url && !collected.includes(url)) collected.push(url);
+  const addEntry = (entry) => {
+    const raw = extractRawImageValue(entry);
+    if (!raw) return;
+
+    const candidates = buildImageCandidates(raw);
+    const url = candidates[0] ?? null;
+    if (!url || collected.includes(url)) return;
+
+    collected.push(url);
+    collectedCandidates.push(candidates);
   };
 
   // 1. Tableaux d'images (priorité)
@@ -130,7 +188,7 @@ function extractProductImages(source = {}) {
     source.media,
     source.attachments,
   ].forEach((list) => {
-    toArray(list).forEach(addUrl);
+    toArray(list).forEach(addEntry);
   });
 
   // 2. Champs image uniques (fallback)
@@ -147,9 +205,9 @@ function extractProductImages(source = {}) {
     source.cover_url,
     source.main_image,
     source.main_image_url,
-  ].forEach(addUrl);
+  ].forEach(addEntry);
 
-  return collected; // tableau de strings URL absolues
+  return { images: collected, imageCandidates: collectedCandidates };
 }
 
 // ─────────────────────────────────────────────
@@ -160,9 +218,10 @@ export function normalizeProduct(rawProduct = {}) {
 
   if (!isObject(source)) return source;
 
-  // Images = tableau de strings URL absolues
-  const images = extractProductImages(source);
+  // Images = tableau de strings URL absolues + URL alternatives par image
+  const { images, imageCandidates } = extractProductImages(source);
   const firstImage = images[0] ?? null; // string directement
+  const firstImageCandidates = imageCandidates[0] ?? (firstImage ? [firstImage] : []);
 
   const sellerSource =
     source.seller ?? source.vendor ?? source.owner ?? source.user ?? source.shop ?? null;
@@ -219,6 +278,11 @@ export function normalizeProduct(rawProduct = {}) {
     image_url: firstImage,
     // images est un tableau de STRINGS (URLs absolues)
     images,
+    // Pour chaque image, liste des URL alternatives à essayer en cas d'échec
+    // (ex: storage:link manquant côté backend Laravel) — utilisé pour le
+    // fallback en cascade dans ProductGrid.
+    imageCandidates,
+    thumbnailCandidates: firstImageCandidates,
     seller: normalizedSeller,
     category: normalizedCategory,
     reviews:

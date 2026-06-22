@@ -40,6 +40,7 @@ class SellerDashboardController extends Controller
 
         $totalProducts = (clone $productsQuery)->count();
         $activeProducts = (clone $productsQuery)->where('status', 'published')->count();
+        $draftProducts = (clone $productsQuery)->where('status', 'draft')->count();
 
         $recentOrders = Order::query()
             ->whereHas('items', fn ($q) => $q->where('seller_id', $sellerId))
@@ -73,6 +74,7 @@ class SellerDashboardController extends Controller
             'pending_orders' => $pendingOrders,
             'total_products' => $totalProducts,
             'active_products' => $activeProducts,
+            'draft_products' => $draftProducts,
             'average_rating' => $request->user()->rating,
             'recent_orders' => $recentOrders->map(fn (Order $o) => [
                 'order_number' => $o->order_number,

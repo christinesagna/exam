@@ -12,12 +12,12 @@ const STATUS_LABELS = {
 };
  
 // Transitions autorisées côté vendeur (alignées avec la logique backend)
+// Sellers cannot cancel orders via this endpoint — cancellation is buyer-only.
 const ALLOWED_TRANSITIONS = {
-  pending:   ["pending", "confirmed", "cancelled"],
-  confirmed: ["confirmed", "shipped", "cancelled"],
+  pending:   ["pending", "confirmed"],
+  confirmed: ["confirmed", "shipped"],
   shipped:   ["shipped", "delivered"],
   delivered: ["delivered"],
-  cancelled: ["cancelled"],
 };
  
 export default function SellerOrdersTable({

@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBox,
+  faChartLine,
+  faStar,
+  faShoppingCart,
+  faMoneyBillWave,
+  faClipboardList,
+  faHourglassHalf,
+} from "@fortawesome/free-solid-svg-icons";
 
 import SellerShell from "../../components/seller/SellerShell";
-import SellerStatsCards from "../../components/seller/SellerStatsCards";
 import sellerService from "../../services/sellerService";
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -11,16 +20,13 @@ const money = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 0,
 });
 
-const numberFormatter = new Intl.NumberFormat("fr-FR");
+const numberFmt = new Intl.NumberFormat("fr-FR");
 
 const extractLabel = (entry) =>
   entry.month ?? entry.label ?? entry.name ?? entry.period ?? "—";
 
 const extractValue = (entry) =>
   Number(entry.total ?? entry.amount ?? entry.value ?? entry.sales ?? entry.revenue ?? 0);
-
-const formatPercentage = (value) => `${numberFormatter.format(value)} %`;
-const formatSatisfaction = (value) => `${numberFormatter.format(value)} / 5`;
 
 const STATUS_LABELS = {
   pending: "En attente",
@@ -42,12 +48,24 @@ const STATUS_COLORS = {
   refunded: "#6b7280",
 };
 
+// Palette d'accents pour les KPI cards
+const KPI_ACCENTS = [
+  "#5b3fd4",
+  "#10b981",
+  "#3b82f6",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#0ea5e9",
+  "#ec4899",
+];
+
 export default function SellerStatisticsPage() {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadStatistics = async () => {
+    (async () => {
       try {
         setLoading(true);
         const data = await sellerService.getStatistics();
@@ -58,88 +76,104 @@ export default function SellerStatisticsPage() {
       } finally {
         setLoading(false);
       }
-    };
-
-    loadStatistics();
+    })();
   }, []);
 
-  const cards = useMemo(() => {
+  const kpiCards = useMemo(() => {
     if (!statistics) return [];
+    const k = statistics.kpis;
 
-    return [
+    const cards = [
       {
-        label: "Vues totales",
-        value: numberFormatter.format(statistics.kpis?.totalViews ?? 0),
-        help: "Nombre réel renvoyé par l'API",
+        label: "Chiffre d'affaires",
+        value: money.format(k.totalRevenue),
+        icon: faMoneyBillWave,
+        sub: "Revenu total généré",
       },
       {
-        label: "Clics totaux",
-        value: numberFormatter.format(statistics.kpis?.totalClicks ?? 0),
-        help: "Nombre réel renvoyé par l'API",
+        label: "Commandes reçues",
+        value: numberFmt.format(k.totalOrders),
+        icon: faClipboardList,
+        sub: "Total des commandes",
       },
       {
-        label: "Taux de conversion",
-        value: formatPercentage(statistics.kpis?.conversionRate ?? 0),
-        help: "Valeur réelle renvoyée par l'API",
+        label: "Commandes en attente",
+        value: numberFmt.format(k.pendingOrders),
+        icon: faHourglassHalf,
+        sub: "À traiter",
+      },
+      {
+        label: "Produits publiés",
+        value: numberFmt.format(k.publishedProducts),
+        icon: faBox,
+        sub: "Produits actifs en ligne",
       },
       {
         label: "Panier moyen",
-        value: money.format(statistics.kpis?.averageOrderValue ?? 0),
-        help: "Valeur réelle renvoyée par l'API",
+        value: money.format(k.averageOrderValue),
+        icon: faShoppingCart,
+        sub: "Valeur moyenne par commande",
+      },
+      {
+        label: "Taux de conversion",
+        value: `${numberFmt.format(k.conversionRate)} %`,
+        icon: faChartLine,
+        sub: "Visiteurs convertis en acheteurs",
+      },
+      {
+        label: "Vues produits",
+        value: numberFmt.format(k.totalViews),
+        icon: faChartLine,
+        sub: "Visites sur vos fiches produits",
       },
       {
         label: "Satisfaction client",
-        value: formatSatisfaction(statistics.kpis?.customerSatisfaction ?? 0),
-        help: "Note réelle renvoyée par l'API",
+        value: k.customerSatisfaction > 0
+          ? `${numberFmt.format(k.customerSatisfaction)} / 5`
+          : "—",
+        icon: faStar,
+        sub: "Note moyenne des avis",
       },
-      {
-        label: "Croissance",
-        value: formatPercentage(statistics.kpis?.growthRate ?? 0),
-        help: "Valeur réelle renvoyée par l'API",
-      },
-    ];
-  }, [statistics]);
+    ].filter(Boolean);
 
-  const hasDetailedBreakdown =
-    statistics &&
-    ((statistics.salesByMonth?.length ?? 0) > 0 ||
-      Object.keys(statistics.ordersByStatus ?? {}).length > 0 ||
-      (statistics.topProducts?.length ?? 0) > 0);
+    return cards;
+  }, [statistics]);
 
   return (
     <SellerShell
       title="Statistiques vendeur"
-      subtitle="Indicateurs réels fournis par l'API vendeur"
+      subtitle="Indicateurs de performance de votre boutique"
     >
       {loading ? (
         <div style={loadingStyle}>
-          <div style={spinner} />
+          <div style={spinnerStyle} />
           <span>Chargement des statistiques…</span>
         </div>
       ) : (
         <>
-          <SellerStatsCards cards={cards} />
+          {/* KPI CARDS */}
+          <div style={kpiGrid}>
+            {kpiCards.map((card, i) => (
+              <article key={card.label} style={{ ...kpiCard, borderTop: `3px solid ${KPI_ACCENTS[i % KPI_ACCENTS.length]}` }}>
+                <div style={kpiIconWrap}>
+                  <FontAwesomeIcon
+                    icon={card.icon}
+                    style={{ color: KPI_ACCENTS[i % KPI_ACCENTS.length], fontSize: 18 }}
+                  />
+                </div>
+                <div style={kpiLabel}>{card.label}</div>
+                <div style={kpiValue}>{card.value}</div>
+                <div style={kpiSub}>{card.sub}</div>
+              </article>
+            ))}
+          </div>
 
-          {!hasDetailedBreakdown && (
-            <div style={infoBanner}>
-              <span style={{ fontSize: 20 }}>ℹ️</span>
-              <div>
-                <strong>Détails avancés non fournis par l'API</strong>
-                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
-                  L'endpoint <code>/seller/statistics</code> renvoie bien les KPI globaux
-                  (vues, clics, conversion, panier moyen, satisfaction, croissance),
-                  mais il ne fournit pas encore de données mensuelles, de répartition par
-                  statut ou de top produits dans la réponse actuelle.
-                </p>
-              </div>
-            </div>
-          )}
-
+          {/* VENTES PAR MOIS + STATUTS */}
           <div style={grid2cols}>
             <section style={card}>
               <h2 style={sectionTitle}>📅 Ventes par mois</h2>
               {(statistics?.salesByMonth ?? []).length === 0 ? (
-                <p style={muted}>Aucune donnée mensuelle renvoyée par l'API.</p>
+                <p style={muted}>Aucune donnée mensuelle disponible.</p>
               ) : (
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
@@ -163,9 +197,12 @@ export default function SellerStatisticsPage() {
             </section>
 
             <section style={card}>
-              <h2 style={sectionTitle}>📦 Commandes par statut</h2>
+              <h2 style={sectionTitle}>
+                <FontAwesomeIcon icon={faBox} style={{ marginRight: 8 }} />
+                Commandes par statut
+              </h2>
               {Object.keys(statistics?.ordersByStatus ?? {}).length === 0 ? (
-                <p style={muted}>Aucune répartition par statut renvoyée par l'API.</p>
+                <p style={muted}>Aucune répartition par statut disponible.</p>
               ) : (
                 <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
                   {Object.entries(statistics.ordersByStatus).map(([key, value]) => (
@@ -185,10 +222,11 @@ export default function SellerStatisticsPage() {
             </section>
           </div>
 
+          {/* TOP PRODUITS */}
           <section style={{ ...card, marginTop: 16 }}>
             <h2 style={sectionTitle}>🏆 Top produits</h2>
             {(statistics?.topProducts ?? []).length === 0 ? (
-              <p style={muted}>Aucun top produit renvoyé par l'API.</p>
+              <p style={muted}>Aucun top produit disponible.</p>
             ) : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -224,6 +262,8 @@ export default function SellerStatisticsPage() {
   );
 }
 
+/* ── Styles ── */
+
 const loadingStyle = {
   display: "flex",
   alignItems: "center",
@@ -232,24 +272,52 @@ const loadingStyle = {
   color: "#6b7280",
 };
 
-const spinner = {
+const spinnerStyle = {
   width: 24,
   height: 24,
   border: "3px solid #e5e7eb",
-  borderTop: "3px solid #111827",
+  borderTop: "3px solid #5b3fd4",
   borderRadius: "50%",
   animation: "spin 0.8s linear infinite",
 };
 
-const infoBanner = {
-  display: "flex",
-  gap: 12,
-  alignItems: "flex-start",
-  background: "#eff6ff",
-  border: "1px solid #bfdbfe",
-  borderRadius: 10,
-  padding: "14px 18px",
-  marginBottom: 16,
+const kpiGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+  gap: 16,
+  marginBottom: 24,
+};
+
+const kpiCard = {
+  background: "#fff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 14,
+  padding: "18px 20px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+};
+
+const kpiIconWrap = {
+  marginBottom: 10,
+};
+
+const kpiLabel = {
+  fontSize: 13,
+  color: "#6b7280",
+  fontWeight: 500,
+  marginBottom: 4,
+};
+
+const kpiValue = {
+  fontSize: 26,
+  fontWeight: 700,
+  color: "#111827",
+  lineHeight: 1.2,
+};
+
+const kpiSub = {
+  fontSize: 12,
+  color: "#9ca3af",
+  marginTop: 4,
 };
 
 const grid2cols = {
@@ -273,7 +341,7 @@ const sectionTitle = {
   fontWeight: 600,
 };
 
-const muted = { color: "#6b7280" };
+const muted = { color: "#9ca3af", fontSize: 14 };
 
 const th = {
   textAlign: "left",

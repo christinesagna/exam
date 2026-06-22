@@ -79,7 +79,7 @@ const arrayToStatusMap = (arr) => {
   return Object.keys(result).length > 0 ? result : null;
 };
 
-const normalizeStatistics = (payload) => {
+const normalizeStatistics = (payload, dashboardData = null) => {
   const root = rootData(payload);
   const data = root?.statistics ?? root?.stats ?? root;
 
@@ -119,17 +119,42 @@ const normalizeStatistics = (payload) => {
     root?.best_sellers ??
     [];
 
+  // KPI enrichis : on combine les données de /seller/statistics et /seller/dashboard
+  const dash = dashboardData?.raw ?? dashboardData ?? {};
   const kpis = {
-    totalViews: toNumber(data?.total_views ?? root?.total_views ?? 0),
-    totalClicks: toNumber(data?.total_clicks ?? root?.total_clicks ?? 0),
-    conversionRate: toNumber(data?.conversion_rate ?? root?.conversion_rate ?? 0),
+    totalRevenue: toNumber(
+      data?.total_revenue ?? data?.total_sales ?? data?.revenue ?? root?.total_revenue ??
+      dash?.total_sales ?? dash?.total_revenue ?? dash?.revenue ?? 0
+    ),
+    totalOrders: toNumber(
+      data?.total_orders ?? data?.orders_count ?? root?.total_orders ??
+      dash?.total_orders ?? dash?.orders_count ?? 0
+    ),
+    pendingOrders: toNumber(
+      data?.pending_orders ?? root?.pending_orders ??
+      dash?.pending_orders ?? dash?.pending ?? 0
+    ),
+    publishedProducts: toNumber(
+      data?.published_products ?? data?.active_products ?? root?.published_products ??
+      dash?.published_products ?? dash?.active_products ?? 0
+    ),
     averageOrderValue: toNumber(
-      data?.average_order_value ?? root?.average_order_value ?? 0
+      data?.average_order_value ?? root?.average_order_value ??
+      dash?.average_order_value ?? 0
+    ),
+    conversionRate: toNumber(
+      data?.conversion_rate ?? root?.conversion_rate ?? dash?.conversion_rate ?? 0
+    ),
+    totalViews: toNumber(
+      data?.total_views ?? root?.total_views ?? dash?.total_views ?? 0
     ),
     customerSatisfaction: toNumber(
-      data?.customer_satisfaction ?? root?.customer_satisfaction ?? 0
+      data?.customer_satisfaction ?? root?.customer_satisfaction ??
+      dash?.customer_satisfaction ?? 0
     ),
-    growthRate: toNumber(data?.growth_rate ?? root?.growth_rate ?? 0),
+    growthRate: toNumber(
+      data?.growth_rate ?? root?.growth_rate ?? dash?.growth_rate ?? 0
+    ),
   };
 
   return {
@@ -157,15 +182,25 @@ export const sellerService = {
         itemsCount: countMap[o.reference] ?? o.itemsCount,
       }));
     } catch (_) {
-      // Si /seller/orders échoue, on garde les données du dashboard sans enrichissement
+      // Si /seller/orders échoue, on garde les données du dashboard
     }
 
     return dashboard;
   },
 
   async getStatistics() {
-    const { data } = await axiosClient.get("/seller/statistics");
-    return normalizeStatistics(data);
+    // On appelle les deux endpoints en parallèle pour enrichir les KPI
+    const [statsRes, dashRes] = await Promise.allSettled([
+      axiosClient.get("/seller/statistics"),
+      axiosClient.get("/seller/dashboard"),
+    ]);
+
+    const statsData = statsRes.status === "fulfilled" ? statsRes.value.data : {};
+    const dashData = dashRes.status === "fulfilled"
+      ? normalizeDashboard(dashRes.value.data)
+      : null;
+
+    return normalizeStatistics(statsData, dashData);
   },
 
   async getOrders(params = {}) {

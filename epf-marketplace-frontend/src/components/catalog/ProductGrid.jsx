@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Loader from "../common/Loader";
+import { productService } from "../../services/productService";
+
+// Cache mémoire partagé entre toutes les cartes affichées (évite de
+// re-télécharger la description d'un même produit plusieurs fois si
+// celui-ci apparaît à la fois sur l'accueil et dans le catalogue).
+const descriptionCache = new Map();
 
 export default function ProductGrid({
   products = [],
@@ -64,15 +70,78 @@ export default function ProductGrid({
 }
 
 function ProductCard({ product, compact }) {
+  const [candidateIndex, setCandidateIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [fetchedDescription, setFetchedDescription] = useState(null);
+  const [descriptionLoading, setDescriptionLoading] = useState(false);
 
   const name = product.title || product.name || "Produit";
-  const description = product.description || "Aucune description disponible.";
-  const image =
-    product.thumbnail ||
-    product.image_url ||
-    product.image ||
-    (Array.isArray(product.images) ? product.images[0]?.url || product.images[0] : null);
+
+  // ⚠️ Les endpoints /api/products et /api/products/top-selling (utilisés
+  // pour l'accueil et le catalogue) ne renvoient PAS le champ "description"
+  // (seule la page détail /api/products/{id} le fait). Si elle est absente
+  // ici, on la récupère en arrière-plan via productService.getById, avec un
+  // cache mémoire partagé pour éviter de la re-télécharger plusieurs fois.
+  useEffect(() => {
+    if (product.description || !product.id) return;
+
+    if (descriptionCache.has(product.id)) {
+      setFetchedDescription(descriptionCache.get(product.id));
+      return;
+    }
+
+    let ignore = false;
+    setDescriptionLoading(true);
+
+    productService
+      .getById(product.id)
+      .then((full) => {
+        const desc = full?.description || "";
+        descriptionCache.set(product.id, desc);
+        if (!ignore) setFetchedDescription(desc);
+      })
+      .catch(() => {
+        if (!ignore) setFetchedDescription("");
+      })
+      .finally(() => {
+        if (!ignore) setDescriptionLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [product.id, product.description]);
+
+  const description =
+    product.description ||
+    fetchedDescription ||
+    (descriptionLoading
+      ? "Chargement de la description..."
+      : "Aucune description disponible.");
+
+  // Liste des URL à essayer pour l'image : l'URL principale puis des
+  // alternatives (utile si storage:link n'est pas configuré côté backend
+  // Laravel ou si le chemin renvoyé est mal préfixé).
+  const imageCandidates = product.thumbnailCandidates?.length
+    ? product.thumbnailCandidates
+    : [
+        product.thumbnail,
+        product.image_url,
+        product.image,
+        Array.isArray(product.images)
+          ? product.images[0]?.url || product.images[0]
+          : null,
+      ].filter(Boolean);
+
+  const image = !imageError ? imageCandidates[candidateIndex] ?? null : null;
+
+  const handleImageError = () => {
+    if (candidateIndex < imageCandidates.length - 1) {
+      setCandidateIndex((i) => i + 1);
+    } else {
+      setImageError(true);
+    }
+  };
 
   const rawPrice = product.effective_price ?? product.price;
   const price = rawPrice !== undefined && rawPrice !== null ? `${Number(rawPrice).toFixed(2)} FCFA` : "Prix non défini";
@@ -105,11 +174,11 @@ function ProductCard({ product, compact }) {
           position: "relative",
         }}
       >
-        {image && !imageError ? (
+        {image ? (
           <img
             src={image}
             alt={name}
-            onError={() => setImageError(true)}
+            onError={handleImageError}
             style={{
               width: "100%",
               height: compact ? 150 : 180,

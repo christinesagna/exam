@@ -1,4 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faShoppingCart, faCommentDots, faStore, faCog } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../hooks/useAuth";
 import { useCart } from "../../hooks/useCart";
 
@@ -67,24 +69,24 @@ export default function AppLayout() {
                 <NavLink to="/favorites" style={linkStyle}>Favoris</NavLink>
                 <NavLink to="/orders" style={linkStyle}>Mes commandes</NavLink>
                 <NavLink to="/cart" style={linkStyle}>
-                  🛒 Panier {itemCount > 0 ? `(${itemCount})` : ""}
+                  <FontAwesomeIcon icon={faShoppingCart} /> Panier {itemCount > 0 ? `(${itemCount})` : ""}
                 </NavLink>
               </>
             )}
 
-            {/* Messages : visible pour tout utilisateur connecté */}
-            {isAuthenticated && (
-              <NavLink to="/messages" style={linkStyle}>💬 Messages</NavLink>
+            {/* Messages : visible pour les acheteurs et vendeurs, pas pour les admins */}
+            {isAuthenticated && !isAdmin && (
+              <NavLink to="/messages" style={linkStyle}><FontAwesomeIcon icon={faCommentDots} /> Messages</NavLink>
             )}
 
             {/* Liens vendeur */}
             {isSeller && (
-              <NavLink to="/seller" style={linkStyle}>🏪 Espace vendeur</NavLink>
+              <NavLink to="/seller" style={linkStyle}><FontAwesomeIcon icon={faStore} /> Espace vendeur</NavLink>
             )}
 
             {/* Liens admin */}
             {isAdmin && (
-              <NavLink to="/admin" style={linkStyle}>⚙️ Admin</NavLink>
+              <NavLink to="/admin" style={linkStyle}><FontAwesomeIcon icon={faCog} /> Admin</NavLink>
             )}
           </nav>
 

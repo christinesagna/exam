@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faComment, faShop } from "@fortawesome/free-solid-svg-icons";
 import Loader from "../../components/common/Loader";
 import ErrorMessage from "../../components/ui/ErrorMessage";
 import ProductGrid from "../../components/catalog/ProductGrid";
@@ -61,7 +63,7 @@ export default function SellerPublicPage() {
       }}>
         <div>
           <h1 style={{ marginTop: 0, marginBottom: 8 }}>
-            🏪 {seller?.shop_name || seller?.name || "Vendeur"}
+            <FontAwesomeIcon icon={faShop} /> {seller?.shop_name || seller?.name || "Vendeur"}
           </h1>
           <p style={{ color: "#4b5563", margin: "0 0 12px", maxWidth: 600 }}>
             {seller?.bio || seller?.description || "Aucune description disponible."}
@@ -94,7 +96,7 @@ export default function SellerPublicPage() {
               whiteSpace: "nowrap",
             }}
           >
-            💬 Écrire un message
+            <FontAwesomeIcon icon={faComment} /> Écrire un message
           </Link>
         )}
       </div>

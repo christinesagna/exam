@@ -213,6 +213,7 @@ test('profil vendeur et commandes vendeur', function (): void {
     $seller = User::factory()->create(['role' => 'seller']);
     $buyer = User::factory()->create(['role' => 'buyer']);
     $product = Product::factory()->create(['user_id' => $seller->id, 'status' => 'published']);
+    Product::factory()->create(['user_id' => $seller->id, 'status' => 'draft']);
 
     $order = Order::query()->create([
         'user_id' => $buyer->id,
@@ -241,7 +242,10 @@ test('profil vendeur et commandes vendeur', function (): void {
 
     Sanctum::actingAs($seller);
     $this->getJson('/api/seller/orders')->assertOk();
-    $this->getJson('/api/seller/dashboard')->assertOk()->assertJsonStructure(['total_sales', 'top_products']);
+    $this->getJson('/api/seller/dashboard')
+        ->assertOk()
+        ->assertJsonStructure(['total_sales', 'top_products', 'draft_products'])
+        ->assertJsonPath('draft_products', 1);
 });
 
 test('top selling et prix promo', function (): void {

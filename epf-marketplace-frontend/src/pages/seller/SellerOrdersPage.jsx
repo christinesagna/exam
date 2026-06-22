@@ -56,11 +56,10 @@ export default function SellerOrdersPage() {
           }}
         >
           <option value="all">Tous</option>
-<option value="pending">En attente</option>
+          <option value="pending">En attente</option>
 <option value="confirmed">Confirmée</option>
 <option value="shipped">Expédiée</option>
 <option value="delivered">Livrée</option>
-<option value="cancelled">Annulée</option>
         </select>
       }
     >

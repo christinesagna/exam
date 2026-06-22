@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faImage, faHeart, faComment, faShoppingCart } from "@fortawesome/free-solid-svg-icons";
 import { favoriteService } from "../../services/favoriteService";
 import { useAuth } from "../../hooks/useAuth";
 import { useCart } from "../../hooks/useCart";
@@ -114,7 +116,7 @@ export default function ProductCard({ product }) {
               />
             ) : (
               <div style={{ textAlign: "center", color: "#9ca3af" }}>
-                <div style={{ fontSize: 40, marginBottom: 6 }}>🖼️</div>
+                <div style={{ fontSize: 40, marginBottom: 6 }}><FontAwesomeIcon icon={faImage} /></div>
                 <div style={{ fontSize: 12 }}>Pas d'image</div>
               </div>
             )}
@@ -131,10 +133,11 @@ export default function ProductCard({ product }) {
               borderRadius: "999px", width: 36, height: 36,
               cursor: "pointer", fontSize: 16,
               display: "flex", alignItems: "center", justifyContent: "center",
+              color: isFavorite ? "#ef4444" : "#d1d5db",
             }}
             aria-label="Basculer le favori"
           >
-            {isFavorite ? "❤️" : "🤍"}
+            <FontAwesomeIcon icon={faHeart} style={{ opacity: isFavorite ? 1 : 0.5 }} />
           </button>
         )}
       </div>
@@ -187,7 +190,7 @@ export default function ProductCard({ product }) {
               background: "#f9fafb",
             }}
           >
-            💬 Écrire au vendeur
+            <FontAwesomeIcon icon={faComment} /> Écrire au vendeur
           </Link>
         )}
 
@@ -211,7 +214,7 @@ export default function ProductCard({ product }) {
               cursor: "pointer", fontSize: 14,
             }}
           >
-            {cartLoading ? "Ajout..." : "🛒 Panier"}
+            {cartLoading ? "Ajout..." : <><FontAwesomeIcon icon={faShoppingCart} /> Panier</>}
           </button>
         </div>
       </div>

@@ -39,6 +39,7 @@ import MessagingPage from "../pages/messages/MessagingPage";
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import ProductsAdminPage from "../pages/admin/ProductsAdminPage";
 import UsersPage from "../pages/admin/UsersPage";
+import CouponsPage from "../pages/admin/CouponsPage";
 
 // System
 import ForbiddenPage from "../pages/system/ForbiddenPage";
@@ -64,7 +65,7 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
 
-          {/* Messagerie : utilisateur connecté */}
+          {/* Messagerie */}
           <Route path="/messages" element={<MessagingPage />} />
           <Route path="/messages/:userId" element={<MessagingPage />} />
 
@@ -94,9 +95,10 @@ export default function AppRouter() {
           <Route element={<RoleGuard allowedRoles={["admin"]} />}>
             <Route element={<DashboardLayout />}>
               <Route path="/admin" element={<AdminDashboardPage />} />
-              <Route path="/admin/products" element={<ProductsAdminPage />} />
-              <Route path="/admin/orders" element={<OrdersPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
+              <Route path="/admin/products" element={<ProductsAdminPage />} />
+              <Route path="/admin/coupons" element={<CouponsPage />} />
+              <Route path="/admin/orders" element={<OrdersPage />} />
             </Route>
           </Route>
         </Route>
