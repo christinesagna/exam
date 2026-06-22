@@ -51,6 +51,9 @@ Route::middleware(['auth:sanctum', 'not_suspended'])->group(function (): void {
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::put('auth/profile', [AuthController::class, 'updateProfile']);
 
+    Route::get('coupons/validate', [OrderController::class, 'validateCoupon']);
+    Route::post('coupons/validate', [OrderController::class, 'validateCoupon']);
+
     // my-products est maintenant déclarée plus haut, supprimée ici
     Route::get('products/{product}/is-favorite', [ProductController::class, 'isFavorite']);
     Route::post('products/{product}/reviews', [ReviewController::class, 'store']);
@@ -98,6 +101,7 @@ Route::middleware(['auth:sanctum', 'not_suspended', 'admin'])->prefix('admin')->
     Route::post('users/{user}/suspend', [AdminUserController::class, 'suspend']);
     Route::post('users/{user}/activate', [AdminUserController::class, 'activate']);
 
+    Route::get('products', [AdminProductController::class, 'index']);
     Route::patch('products/{id}/status', [AdminProductController::class, 'updateStatus']);
     Route::delete('products/{id}/force', [AdminProductController::class, 'destroy']);
 

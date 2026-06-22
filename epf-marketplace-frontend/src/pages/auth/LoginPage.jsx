@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import Button from "../../components/ui/Button";
 import ErrorMessage from "../../components/ui/ErrorMessage";
@@ -10,11 +10,9 @@ import { useToast } from "../../hooks/useToast";
 
 function LoginPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const toast = useToast();
   const { login } = useAuth();
   const [apiError, setApiError] = useState("");
-  const redirectTo = location.state?.from?.pathname || "/profile";
 
   const {
     register,
@@ -27,7 +25,7 @@ function LoginPage() {
       setApiError("");
       await login(values);
       toast.auth.loginSuccess();
-      navigate(redirectTo, { replace: true });
+      navigate("/", { replace: true });
     } catch (error) {
       const status = error?.response?.status;
 

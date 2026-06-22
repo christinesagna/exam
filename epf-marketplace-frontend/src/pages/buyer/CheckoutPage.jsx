@@ -1,9 +1,38 @@
+// src/pages/buyer/CheckoutPage.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../../components/common/EmptyState";
 import { useCart } from "../../hooks/useCart";
 import { useToast } from "../../hooks/useToast";
 import { orderService } from "../../services/orderService";
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+function formatMoney(value) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "XOF",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+/**
+ * Calcule la remise à partir des infos du coupon validé et du sous-total.
+ * Retourne un nombre positif (montant à déduire).
+ */
+function computeDiscount(couponData, subtotal) {
+  if (!couponData) return 0;
+  const type = String(couponData.type || "").toLowerCase();
+  const value = Number(couponData.value || couponData.discount || 0);
+
+  if (type === "percent") {
+    return Math.min((subtotal * value) / 100, subtotal);
+  }
+  // fixed / montant fixe
+  return Math.min(value, subtotal);
+}
+
+// ─── component ──────────────────────────────────────────────────────────────
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -22,6 +51,12 @@ export default function CheckoutPage() {
     payment_method: "cash_on_delivery",
   });
 
+  // coupon state
+  const [couponInput, setCouponInput] = useState("");
+  const [couponValidating, setCouponValidating] = useState(false);
+  const [couponData, setCouponData] = useState(null);   // infos du coupon validé
+  const [couponError, setCouponError] = useState("");
+
   if (!cart.items.length) {
     return (
       <EmptyState
@@ -31,9 +66,52 @@ export default function CheckoutPage() {
     );
   }
 
+  const subtotal = Number(cart.subtotal || cart.total || 0);
+  const discount = computeDiscount(couponData, subtotal);
+  const total = Math.max(0, subtotal - discount);
+
+  // ── handlers ────────────────────────────────────────────────────────────
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+
+    setCouponError("");
+    setCouponData(null);
+    setCouponValidating(true);
+
+    try {
+      const result = await orderService.validateCoupon(code, subtotal);
+      // l'API peut renvoyer { coupon: {...} } ou directement les champs
+      const info = result?.coupon ?? result?.data ?? result;
+
+      if (!info || (!info.type && !info.discount)) {
+        setCouponError("Ce coupon est invalide ou expiré.");
+        return;
+      }
+
+      setCouponData(info);
+      toast.success(`Coupon "${code}" appliqué !`);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Coupon invalide ou expiré.";
+      setCouponError(msg);
+    } finally {
+      setCouponValidating(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponData(null);
+    setCouponInput("");
+    setCouponError("");
   };
 
   const handleSubmit = async (event) => {
@@ -50,7 +128,7 @@ export default function CheckoutPage() {
       shipping_postal_code: form.postal_code,
       shipping_phone: form.phone,
       notes: form.notes,
-      coupon_code: form.coupon_code || undefined,
+      ...(couponData ? { coupon_code: couponInput.trim().toUpperCase() } : {}),
     };
 
     try {
@@ -73,6 +151,8 @@ export default function CheckoutPage() {
     }
   };
 
+  // ── render ──────────────────────────────────────────────────────────────
+
   return (
     <section>
       <h1 style={{ marginTop: 0 }}>Checkout</h1>
@@ -88,6 +168,7 @@ export default function CheckoutPage() {
           alignItems: "start",
         }}
       >
+        {/* ── Formulaire livraison ── */}
         <form
           onSubmit={handleSubmit}
           style={{
@@ -106,7 +187,6 @@ export default function CheckoutPage() {
             onChange={handleChange}
             required
           />
-
           <FormField
             label="Téléphone"
             name="phone"
@@ -114,7 +194,6 @@ export default function CheckoutPage() {
             onChange={handleChange}
             required
           />
-
           <FormField
             label="Adresse"
             name="address"
@@ -122,7 +201,6 @@ export default function CheckoutPage() {
             onChange={handleChange}
             required
           />
-
           <FormField
             label="Code postal"
             name="postal_code"
@@ -130,7 +208,6 @@ export default function CheckoutPage() {
             onChange={handleChange}
             required
           />
-
           <FormField
             label="Ville"
             name="city"
@@ -139,13 +216,95 @@ export default function CheckoutPage() {
             required
           />
 
-          <FormField
-            label="Code coupon"
-            name="coupon_code"
-            value={form.coupon_code}
-            onChange={handleChange}
-          />
+          {/* ── Section coupon ── */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
+              Code coupon
+            </label>
 
+            {couponData ? (
+              /* coupon validé : affiche le badge de remise */
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  background: "#dcfce7",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                }}
+              >
+                <span style={{ flex: 1, fontWeight: 700, color: "#166534" }}>
+                  ✓ {couponInput.trim().toUpperCase()}
+                  {couponData.type === "percent"
+                    ? ` — ${couponData.value}% de réduction`
+                    : ` — ${formatMoney(couponData.value || couponData.discount)} de réduction`}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#991b1b",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontSize: 13,
+                  }}
+                >
+                  Retirer
+                </button>
+              </div>
+            ) : (
+              /* coupon non encore validé : champ + bouton */
+              <>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    value={couponInput}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value);
+                      if (couponError) setCouponError("");
+                    }}
+                    placeholder="EPF10"
+                    style={{ ...inputStyle, flex: 1 }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleApplyCoupon();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={couponValidating || !couponInput.trim()}
+                    style={{
+                      border: "none",
+                      background: "#2563eb",
+                      color: "#fff",
+                      padding: "0 18px",
+                      borderRadius: 10,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      opacity: !couponInput.trim() ? 0.5 : 1,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {couponValidating ? "Vérification..." : "Appliquer"}
+                  </button>
+                </div>
+
+                {couponError ? (
+                  <p style={{ margin: "6px 0 0", color: "#b91c1c", fontSize: 13 }}>
+                    {couponError}
+                  </p>
+                ) : null}
+              </>
+            )}
+          </div>
+
+          {/* ── Mode de paiement ── */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
               Mode de paiement
@@ -162,6 +321,7 @@ export default function CheckoutPage() {
             </select>
           </div>
 
+          {/* ── Notes ── */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
               Notes
@@ -188,12 +348,14 @@ export default function CheckoutPage() {
               borderRadius: 10,
               fontWeight: 700,
               cursor: "pointer",
+              opacity: submitting ? 0.7 : 1,
             }}
           >
             {submitting ? "Validation..." : "Confirmer la commande"}
           </button>
         </form>
 
+        {/* ── Résumé commande ── */}
         <aside
           style={{
             background: "#fff",
@@ -211,22 +373,51 @@ export default function CheckoutPage() {
                   {item.product?.title || item.product?.name || `Produit #${item.product_id}`}
                 </div>
                 <div style={{ color: "#6b7280", fontSize: 14 }}>
-                  {item.quantity} × {Number(item.unitPrice).toFixed(2)} FCFA
+                  {item.quantity} × {formatMoney(item.unitPrice)}
                 </div>
               </div>
             ))}
           </div>
 
           <div style={{ marginTop: 16 }}>
-            <SummaryRow label="Sous-total" value={`${Number(cart.subtotal).toFixed(2)} FCFA`} />
-            <SummaryRow label="Frais" value="0.00 FCFA" />
-            <SummaryRow label="Total" value={`${Number(cart.total).toFixed(2)} FCFA`} bold />
+            <SummaryRow label="Sous-total" value={formatMoney(subtotal)} />
+            <SummaryRow label="Frais de livraison" value={formatMoney(0)} />
+
+            {discount > 0 ? (
+              <SummaryRow
+                label={`Coupon (${couponInput.trim().toUpperCase()})`}
+                value={`− ${formatMoney(discount)}`}
+                highlight
+              />
+            ) : null}
+
+            <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 10, paddingTop: 10 }}>
+              <SummaryRow label="Total" value={formatMoney(total)} bold />
+            </div>
           </div>
+
+          {discount > 0 ? (
+            <p
+              style={{
+                marginTop: 12,
+                padding: "8px 12px",
+                background: "#dcfce7",
+                borderRadius: 8,
+                color: "#166534",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              🎉 Vous économisez {formatMoney(discount)} grâce au coupon !
+            </p>
+          ) : null}
         </aside>
       </div>
     </section>
   );
 }
+
+// ─── sub-components ──────────────────────────────────────────────────────────
 
 function FormField({ label, required = false, ...props }) {
   return (
@@ -239,11 +430,18 @@ function FormField({ label, required = false, ...props }) {
   );
 }
 
-function SummaryRow({ label, value, bold = false }) {
+function SummaryRow({ label, value, bold = false, highlight = false }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-      <span style={{ color: "#6b7280" }}>{label}</span>
-      <span style={{ fontWeight: bold ? 800 : 600 }}>{value}</span>
+      <span style={{ color: highlight ? "#166534" : "#6b7280" }}>{label}</span>
+      <span
+        style={{
+          fontWeight: bold ? 800 : 600,
+          color: highlight ? "#166534" : undefined,
+        }}
+      >
+        {value}
+      </span>
     </div>
   );
 }

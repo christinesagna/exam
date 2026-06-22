@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'value',
     'usage_limit',
     'times_used',
+    'description',
     'min_order_total',
     'starts_at',
     'ends_at',

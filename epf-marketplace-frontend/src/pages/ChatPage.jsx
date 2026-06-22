@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { getMessagesWith, sendMessage } from "../services/messageService";
  
 export default function ChatPage() {
@@ -76,7 +78,7 @@ export default function ChatPage() {
           onClick={() => navigate("/messages")}
           style={{ background: "none", border: "none", cursor: "pointer", color: "#2563eb", fontSize: 18 }}
         >
-          ←
+          <FontAwesomeIcon icon={faArrowLeft} />
         </button>
         <div style={{
           width: 40, height: 40, borderRadius: "50%",

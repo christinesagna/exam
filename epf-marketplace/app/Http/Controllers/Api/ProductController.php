@@ -49,6 +49,7 @@ class ProductController extends Controller
         match ($sort) {
             'popular' => $query->orderByDesc('sales_count')->orderByDesc('id'),
             'cheapest' => $query->orderBy('price')->orderByDesc('id'),
+            'expensive' => $query->orderByDesc('price')->orderByDesc('id'),
             'most_rated' => $query->orderByDesc('rating')->orderByDesc('total_reviews'),
             default => $query->orderByDesc('id'),
         };

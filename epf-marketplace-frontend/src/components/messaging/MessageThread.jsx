@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faComment } from "@fortawesome/free-solid-svg-icons";
 
 const formatTime = (value) =>
   value ? new Date(value).toLocaleString("fr-FR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }) : "";
@@ -55,7 +57,7 @@ export default function MessageThread({
           gap: 12,
         }}
       >
-        <div style={{ fontSize: 48 }}>💬</div>
+        <div style={{ fontSize: 48 }}><FontAwesomeIcon icon={faComment} /></div>
         <h2 style={{ margin: 0 }}>Sélectionne une conversation</h2>
         <p style={{ margin: 0, fontSize: 14 }}>
           Choisis un contact à gauche pour commencer à écrire.

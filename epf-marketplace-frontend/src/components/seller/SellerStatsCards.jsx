@@ -22,11 +22,6 @@ export default function SellerStatsCards({ cards = [] }) {
           <div style={{ fontSize: 28, fontWeight: 700, marginTop: 8 }}>
             {card.value}
           </div>
-          {card.help ? (
-            <div style={{ marginTop: 8, color: "#9ca3af", fontSize: 13 }}>
-              {card.help}
-            </div>
-          ) : null}
         </article>
       ))}
     </div>

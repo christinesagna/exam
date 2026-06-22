@@ -27,7 +27,7 @@ export default function ReviewForm({
     setError(null);
     try {
       const res = await createReview(productId, { rating, comment });
-      const newReview = res.data.data ?? res.data;
+      const newReview = res?.review ?? res?.data?.data ?? res?.data ?? res;
       setSuccess("Avis publié avec succès !");
       onReviewSubmitted?.(newReview);
     } catch (e) {

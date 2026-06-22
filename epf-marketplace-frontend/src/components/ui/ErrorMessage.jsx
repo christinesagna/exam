@@ -1,3 +1,6 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
+
 function ErrorMessage({ message = "Une erreur est survenue.", onClose }) {
   if (!message) return null;
 
@@ -29,7 +32,7 @@ function ErrorMessage({ message = "Une erreur est survenue.", onClose }) {
             cursor: "pointer",
           }}
         >
-          ✕
+          <FontAwesomeIcon icon={faTimes} />
         </button>
       )}
     </div>

@@ -76,7 +76,7 @@ export default function OrdersPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {orders.map((order) => {
             const status = order.status || "unknown";
-            const total = Number(order.total ?? order.amount ?? 0);
+            const total = Number(order.total_amount ?? order.total ?? order.amount ?? 0);
 
             return (
               <article

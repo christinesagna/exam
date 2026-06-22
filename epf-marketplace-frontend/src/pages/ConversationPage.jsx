@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faComment } from "@fortawesome/free-solid-svg-icons";
 import { getConversations, getUnreadCount } from "../services/messageService";
  
 export default function ConversationsPage() {
@@ -46,7 +48,7 @@ export default function ConversationsPage() {
       {/* État vide */}
       {!loading && !error && conversations.length === 0 && (
         <div style={{ textAlign: "center", padding: "60px 0", color: "#6b7280" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+          <div style={{ fontSize: 48, marginBottom: 12 }}><FontAwesomeIcon icon={faComment} /></div>
           <p style={{ fontSize: 16, fontWeight: 500 }}>Aucune conversation</p>
           <p style={{ fontSize: 13 }}>Contacte un vendeur depuis la fiche d'un produit.</p>
         </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import {
   getProduct,
   createProduct,
@@ -134,7 +136,7 @@ export default function ProductFormPage() {
           onClick={() => navigate("/seller/products")}
           style={{ background: "none", border: "none", cursor: "pointer", color: "#2563eb", fontSize: 14 }}
         >
-          ← Mes produits
+          <FontAwesomeIcon icon={faArrowLeft} /> Mes produits
         </button>
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
           {isEdit ? "Modifier le produit" : "Nouveau produit"}

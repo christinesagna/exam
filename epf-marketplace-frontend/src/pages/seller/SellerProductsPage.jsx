@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft, faBox } from "@fortawesome/free-solid-svg-icons";
 import { getMyProducts, deleteProduct } from "../../services/productService";
  
 export default function SellerProductsPage() {
@@ -75,7 +77,7 @@ export default function SellerProductsPage() {
       {/* État vide */}
       {!loading && products.length === 0 && (
         <div style={{ textAlign: "center", padding: "60px 0", color: "#6b7280" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+          <div style={{ fontSize: 48, marginBottom: 12 }}><FontAwesomeIcon icon={faBox} /></div>
           <p style={{ fontSize: 16, fontWeight: 500 }}>Aucun produit pour le moment</p>
           <button
             onClick={() => navigate("/seller/products/new")}
@@ -205,7 +207,7 @@ export default function SellerProductsPage() {
                 disabled={page === 1}
                 style={paginBtnStyle(page === 1)}
               >
-                ← Précédent
+                <FontAwesomeIcon icon={faArrowLeft} /> Précédent
               </button>
               <span style={{ fontSize: 13, color: "#6b7280" }}>
                 Page {pagination.current_page} / {pagination.last_page}

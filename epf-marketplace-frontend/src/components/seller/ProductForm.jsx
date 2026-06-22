@@ -16,9 +16,9 @@ export default function ProductForm({
       category_id: initialValues.category_id ?? initialValues.category?.id ?? "",
       status: initialValues.status ?? "draft",
       flash_sale: Boolean(
-        initialValues.flash_sale ?? initialValues.is_flash_sale
+        initialValues.flash_sale ?? initialValues.is_flash_sale ?? initialValues.sale_price
       ),
-      flash_price: initialValues.flash_price ?? "",
+      sale_price: initialValues.sale_price ?? initialValues.flash_price ?? "",
       images: undefined,
     }),
     [initialValues]
@@ -48,10 +48,9 @@ export default function ProductForm({
     formData.append("quantity", values.stock);
     formData.append("category_id", values.category_id);
     formData.append("status", values.status);
-    formData.append("flash_sale", values.flash_sale ? "1" : "0");
 
-    if (values.flash_sale && values.flash_price) {
-      formData.append("flash_price", values.flash_price);
+    if (values.flash_sale && values.sale_price) {
+      formData.append("sale_price", values.sale_price);
     }
 
     if (values.images?.length) {
@@ -168,7 +167,7 @@ export default function ProductForm({
         {flashSale ? (
           <div style={{ marginTop: 12 }}>
             <label style={label}>Prix promotionnel</label>
-            <input type="number" {...register("flash_price")} style={input} />
+            <input type="number" {...register("sale_price")} style={input} />
           </div>
         ) : null}
       </div>

@@ -1,4 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faShoppingCart } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../hooks/useAuth";
 import semLogo from "../../assets/SEM-Market.png";
 
@@ -50,7 +52,7 @@ export default function Navbar() {
                 {user?.name || user?.email || "Utilisateur"}
               </span>
               <NavLink to="/profile" style={linkStyle}>Profil</NavLink>
-              {user?.role === "buyer" && <NavLink to="/cart" style={linkStyle}>🛒 Panier</NavLink>}
+              {user?.role === "buyer" && <NavLink to="/cart" style={linkStyle}><FontAwesomeIcon icon={faShoppingCart} /> Panier</NavLink>}
               {user?.role === "seller" && <NavLink to="/seller" style={linkStyle}>Espace vendeur</NavLink>}
               {user?.role === "admin" && <NavLink to="/admin" style={linkStyle}>Admin</NavLink>}
               <button type="button" onClick={handleLogout} className="navbar-logout">

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft, faImage, faShoppingCart, faHeart, faComment } from "@fortawesome/free-solid-svg-icons";
 import Loader from "../../components/common/Loader";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import ReviewList from "../../components/catalog/ReviewList";
@@ -25,6 +27,8 @@ export default function ProductDetailsPage() {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [imageCandidateIndex, setImageCandidateIndex] = useState(0);
+  const [mainImageError, setMainImageError] = useState(false);
 
   const isBuyer = user?.role === "buyer";
 
@@ -41,6 +45,8 @@ export default function ProductDetailsPage() {
         setLoading(true);
         setError("");
         setSelectedIndex(0);
+        setImageCandidateIndex(0);
+        setMainImageError(false);
 
         const data = await productService.getById(id);
         if (!ignore) setProduct(data);
@@ -77,6 +83,15 @@ export default function ProductDetailsPage() {
     ? product.images
     : product?.thumbnail
     ? [product.thumbnail]
+    : [];
+
+  // Pour chaque image, liste des URL alternatives à essayer si la principale
+  // renvoie une erreur (storage:link manquant côté backend, chemin mal
+  // préfixé, etc.). Aligné sur "images" ci-dessus.
+  const imagesCandidates = product?.images?.length
+    ? product.imageCandidates ?? []
+    : product?.thumbnailCandidates?.length
+    ? [product.thumbnailCandidates]
     : [];
 
   const handleToggleFavorite = async () => {
@@ -122,12 +137,30 @@ export default function ProductDetailsPage() {
   if (!product) return <ErrorMessage message="Produit introuvable." />;
 
   const description = product.description || product.details || product.summary || "";
-  const currentImage = images[selectedIndex] ?? null;
+
+  // URL alternatives pour l'image actuellement sélectionnée
+  const currentCandidates = imagesCandidates[selectedIndex]?.length
+    ? imagesCandidates[selectedIndex]
+    : images[selectedIndex]
+    ? [images[selectedIndex]]
+    : [];
+
+  const currentImage = !mainImageError
+    ? currentCandidates[imageCandidateIndex] ?? images[selectedIndex] ?? null
+    : null;
+
+  const handleMainImageError = () => {
+    if (imageCandidateIndex < currentCandidates.length - 1) {
+      setImageCandidateIndex((i) => i + 1);
+    } else {
+      setMainImageError(true);
+    }
+  };
 
   return (
     <section>
       <Link to="/products" style={{ color: "#2563eb", textDecoration: "none" }}>
-        ← Retour au catalogue
+        <FontAwesomeIcon icon={faArrowLeft} /> Retour au catalogue
       </Link>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 20, alignItems: "start" }}>
@@ -144,15 +177,11 @@ export default function ProductDetailsPage() {
                 src={currentImage}
                 alt={product.title || product.name}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                  e.currentTarget.parentNode.innerHTML =
-                    '<div style="color:#9ca3af;text-align:center"><div style="font-size:48px">🖼️</div><div style="font-size:13px;margin-top:6px">Image indisponible</div></div>';
-                }}
+                onError={handleMainImageError}
               />
             ) : (
               <div style={{ textAlign: "center", color: "#9ca3af" }}>
-                <div style={{ fontSize: 56 }}>🖼️</div>
+                <div style={{ fontSize: 56 }}><FontAwesomeIcon icon={faImage} /></div>
                 <div style={{ fontSize: 13, marginTop: 8 }}>Pas d'image disponible</div>
               </div>
             )}
@@ -165,7 +194,11 @@ export default function ProductDetailsPage() {
                   key={idx}
                   src={url}
                   alt={`Vue ${idx + 1}`}
-                  onClick={() => setSelectedIndex(idx)}
+                  onClick={() => {
+                    setSelectedIndex(idx);
+                    setImageCandidateIndex(0);
+                    setMainImageError(false);
+                  }}
                   style={{
                     width: 60, height: 60, objectFit: "cover", borderRadius: 8, cursor: "pointer",
                     border: selectedIndex === idx ? "2px solid #2563eb" : "2px solid #e5e7eb",
@@ -244,7 +277,7 @@ export default function ProductDetailsPage() {
                 fontWeight: 700, fontSize: 15,
               }}
             >
-              {cartLoading ? "Ajout en cours..." : "🛒 Ajouter au panier"}
+              {cartLoading ? "Ajout en cours..." : <><FontAwesomeIcon icon={faShoppingCart} /> Ajouter au panier</>}
             </button>
 
             {isBuyer && (
@@ -256,7 +289,7 @@ export default function ProductDetailsPage() {
                   padding: "13px 20px", borderRadius: 12, cursor: "pointer", fontWeight: 600, fontSize: 15,
                 }}
               >
-                {isFavorite ? "❤️ Retirer des favoris" : "🤍 Ajouter aux favoris"}
+                {isFavorite ? <><FontAwesomeIcon icon={faHeart} style={{ color: "#ef4444" }} /> Retirer des favoris</> : <><FontAwesomeIcon icon={faHeart} /> Ajouter aux favoris</>}
               </button>
             )}
 
@@ -270,7 +303,7 @@ export default function ProductDetailsPage() {
                   background: "#f9fafb",
                 }}
               >
-                💬 Contacter le vendeur
+                <FontAwesomeIcon icon={faComment} /> Contacter le vendeur
               </Link>
             )}
           </div>

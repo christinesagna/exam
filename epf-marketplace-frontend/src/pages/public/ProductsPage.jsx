@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import SearchBar from "../../components/catalog/SearchBar";
 import CategoryList from "../../components/catalog/CategoryList";
 import ProductFilters from "../../components/catalog/ProductFilters";
@@ -131,7 +133,7 @@ export default function ProductsPage({ title = "Catalogue" }) {
                 onClick={resetParams}
                 style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontWeight: 700 }}
               >
-                ✕ Effacer
+                <FontAwesomeIcon icon={faTimes} /> Effacer
               </button>
             </div>
           )}
